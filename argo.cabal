@@ -1,0 +1,26 @@
+name:                argo
+version:             0.1.0.0
+-- synopsis:            
+-- description:         
+license:             GPL-2
+license-file:        LICENSE
+author:              Ashley Yakeley
+maintainer:          Ashley Yakeley <ashley@semantic.org>
+-- copyright:           
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+    hs-source-dirs:     lib
+    exposed-modules:    Data.Argo.Expression, Data.Argo.Value, Data.Argo.Read
+    other-modules:      Import
+    build-depends:      base == 4.6.*, transformers >= 0.3, witness == 0.2.*
+    extensions:         NoImplicitPrelude ScopedTypeVariables FlexibleContexts FlexibleInstances KindSignatures GADTs ImpredicativeTypes PolyKinds TypeFamilies MultiParamTypeClasses ConstraintKinds
+
+executable argo
+    hs-source-dirs:     cmd
+    main-is:            Main.hs
+    build-depends:      base == 4.6.*, transformers >= 0.3, argo == 0.1.0.0
+    extensions:         ScopedTypeVariables FlexibleContexts FlexibleInstances KindSignatures GADTs ImpredicativeTypes PolyKinds TypeFamilies MultiParamTypeClasses ConstraintKinds
+  
