@@ -23,4 +23,4 @@ executable argo
     main-is:            Main.hs
     build-depends:      base == 4.6.*, transformers >= 0.3, argo == 0.1.0.0
     extensions:         ScopedTypeVariables FlexibleContexts FlexibleInstances KindSignatures GADTs ImpredicativeTypes PolyKinds TypeFamilies MultiParamTypeClasses ConstraintKinds
-  
+

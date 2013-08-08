@@ -128,13 +128,17 @@ module Data.Argo.Read where
             return (pattern,result);
         };
 
+        argoBind :: ArgoPatternExpression v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);
+        argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
+         (toSimpleValueExpression (monoPatternBind pat exp));
+
         assembleFunction :: [(ArgoPatternExpression v,ArgoExpression v v)] -> ArgoExpression v (v -> v);
         assembleFunction [] = pure (\_ -> error "no match in {...}");
         assembleFunction ((pat,exp):ps) = liftA2 (\vmv vv v -> case vmv v of
         {
             Just r -> r;
             Nothing -> vv v;
-        }) (monoPatternBind pat exp) (assembleFunction ps);
+        }) (argoBind pat exp) (assembleFunction ps);
 
         readFunction :: ReadP (ArgoExpression v v);
         readFunction = do

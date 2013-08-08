@@ -9,6 +9,10 @@ module Data.Argo.Expression where
         MkConstraintWitness :: constraint => ConstraintWitness constraint;
     };
 
+    listTypeToList :: (forall a. w a -> r) -> ListType w t -> [r];
+    listTypeToList _wr NilListType = [];
+    listTypeToList wr (ConsListType wa rest) = (wr wa):(listTypeToList wr rest);
+
     class AppendList la lb where
     {
         type ListAppend la lb :: *;
@@ -170,6 +174,10 @@ module Data.Argo.Expression where
          (Compose (fmap (\(lx,a) -> fmap (\lb lr -> (a,lb (insM lx lr))) f2vtb) f1vca));
     };
 
+    toSimpleValueExpression :: (Functor f) =>
+     ValueExpression wit f r -> ValueExpression wit Identity (f r);
+    toSimpleValueExpression (MkExpression vwits fvsr) = MkExpression vwits (Identity (\vals -> fmap (\vsr -> vsr vals) fvsr));
+
 
     type PatternExpression wit q = MatchExpression wit (Compose ((->) q) Maybe);
 
@@ -315,7 +323,7 @@ module Data.Argo.Expression where
         MonoPatternExpression sym val q () ->
         MonoValueExpression sym val f r ->
         MonoValueExpression sym val (Compose (Compose ((->) q) Maybe) f) r;
-    monoPatternBind patExp valExp = matchBind patExp valExp;
+    monoPatternBind patExp valExp = fmap snd (matchBind patExp valExp);
     
 {-
     matchBind :: (SimpleWitness wit,Functor f1,Functor f2) =>
@@ -348,4 +356,12 @@ module Data.Argo.Expression where
     evalExpression (ClosedExpression fr) = Right fr;
     evalExpression exp = Left (expressionSymbols exp);
 -}
+    
+    expressionSymbols :: MonoValueExpression sym val f r -> [sym];
+    expressionSymbols (MkExpression symlist _) = listTypeToList (\(MkMonoSymbol sym) -> sym) symlist;
+    
+    evalExpression :: (Functor f) => MonoValueExpression sym val f r -> Either [sym] (f r);
+    evalExpression (MkExpression NilListType fnr) = Right (fmap (\nr -> nr ()) fnr);
+    evalExpression exp = Left (expressionSymbols exp);
+
 }

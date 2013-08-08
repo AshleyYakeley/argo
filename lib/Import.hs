@@ -10,6 +10,7 @@ module Import(module Import) where
     import Data.Eq as Import;
     import Data.Maybe as Import;
     import Data.Either as Import;
+    import Data.Tuple as Import;
     import Data.List as Import ((++));
     import Data.Char as Import;
     import Data.String as Import;
