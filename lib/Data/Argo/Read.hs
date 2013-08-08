@@ -19,12 +19,12 @@ module Data.Argo.Read where
     };
     
     readText :: forall v m. (ValueRead v, Monad m) => String -> m (ArgoExpression v v);
-    readText s = case readP_to_S readExpressionWS s of
+    readText s = case readP_to_S readExpressionToEnd s of
     {
         [(a,"")] -> return a;
         [(_,s)] -> fail ("unrecognised: " ++ s);
-        [] -> fail ("invalid");
-        _:_ -> fail ("ambiguous");
+        [] -> fail "invalid";
+        _:_ -> fail "ambiguous";
     } where
     {
         readp :: Read a => ReadP a;
@@ -185,11 +185,12 @@ module Data.Argo.Read where
             applyArgs f (a:args) = applyArgs (liftA2 valueApply f a) args;
         };
         
-        readExpressionWS :: ReadP (ArgoExpression v v);
-        readExpressionWS = do
+        readExpressionToEnd :: ReadP (ArgoExpression v v);
+        readExpressionToEnd = do
         {
             exp <- readExpression;
             readWS;
+            eof;
             return exp;
         };
     };
