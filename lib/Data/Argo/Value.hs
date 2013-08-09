@@ -27,7 +27,7 @@ module Data.Argo.Value where
         valueConstant "true" = Just (BoolValue True);
         valueConstant "false" = Just (BoolValue False);
         valueConstant _ = Nothing;
-        
+
         valueIsConstant "null" = Just (\v -> case v of
         {
             NullValue -> True;
@@ -46,23 +46,31 @@ module Data.Argo.Value where
         valueIsConstant _ = Nothing;
 
         valueFromString = StringValue;
-        
+
         valueIsString s (StringValue s') = s == s';
         valueIsString _ _ = False;
-        
+
         valueFromNumber = NumberValue;
-        
+
         valueIsNumber n (NumberValue n') = n == n';
         valueIsNumber _ _ = False;
-        
+
         valueFromArray = ArrayValue;
-        
+
         valueIsArray (ArrayValue arr) = Just arr;
         valueIsArray _ = Nothing;
-        
+
         valueFromFunction = FunctionValue;
-        
+
         valueApply (FunctionValue f) x = f x;
         valueApply _ _ = error "non-function application";
+
+        valueIsType "null" NullValue = True;
+        valueIsType "boolean" (BoolValue _) = True;
+        valueIsType "number" (NumberValue _) = True;
+        valueIsType "string" (StringValue _) = True;
+        valueIsType "array" (ArrayValue _) = True;
+        valueIsType "function" (FunctionValue _) = True;
+        valueIsType _ _ = False;
     };
 }

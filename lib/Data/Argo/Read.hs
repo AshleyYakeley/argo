@@ -18,6 +18,7 @@ module Data.Argo.Read where
         valueIsArray :: v -> Maybe [v];
         valueFromFunction :: (v -> v) -> v;
         valueApply :: v -> v -> v;
+        valueIsType :: String -> v -> Bool;
     };
     
     readText :: forall v m. (Show v,ValueRead v, Monad m) => String -> m (ArgoExpression v v);
@@ -35,9 +36,49 @@ module Data.Argo.Read where
     
         readp :: Read a => ReadP a;
         readp = readPrec_to_P readPrec minPrec;
-    
+
+        manyMaximal :: ReadP a -> ReadP [a];
+        manyMaximal p =  many1Maximal p <++ return [];
+
+        many1Maximal :: ReadP a -> ReadP [a];
+        many1Maximal p = liftA2 (:) p (manyMaximal p);
+
+        readIntercalate :: ReadP () -> ReadP a -> ReadP [a];
+        readIntercalate int ra = (do
+        {
+            first <- ra;
+            rest <- manyMaximal (do
+            {
+                int;
+                ra;
+            });
+            return (first:rest);
+        }) <++ (return []);
+
+        isLineBreak :: Char -> Bool;
+        isLineBreak '\n' =  True;
+        isLineBreak '\r' =  True;
+        isLineBreak _ = False;
+
+        readComment :: ReadP ();
+        readComment = do
+        {
+            _ <- char '#';
+            _ <- manyMaximal (satisfy (\c -> not (isLineBreak c)));
+            _ <- satisfy isLineBreak;
+            return ();
+        };
+
         readWS :: ReadP ();
-        readWS = skipSpaces;
+        readWS = do
+        {
+            skipSpaces;
+            (do
+            {
+                readComment;
+                readWS;
+            }) <++ (return ());
+        };
 
         readWSAndChar :: Char -> ReadP ();
         readWSAndChar c = do
@@ -84,24 +125,6 @@ module Data.Argo.Read where
         readIdentifierChar :: ReadP Char;
         readIdentifierChar = readEscapedChar <++ (satisfy goodChar);
 
-        manyMaximal :: ReadP a -> ReadP [a];
-        manyMaximal p =  many1Maximal p <++ return [];
-
-        many1Maximal :: ReadP a -> ReadP [a];
-        many1Maximal p = liftA2 (:) p (manyMaximal p);
-
-        readIntercalate :: ReadP () -> ReadP a -> ReadP [a];
-        readIntercalate int ra = (do
-        {
-            first <- ra;
-            rest <- manyMaximal (do
-            {
-                int;
-                ra;
-            });
-            return (first:rest);
-        }) <++ (return []);
-
         readQuotedString :: ReadP String;
         readQuotedString = do
         {
@@ -120,10 +143,16 @@ module Data.Argo.Read where
             return (first:rest);
         };
 
-        readUnderscored :: ReadP ();
+        readUnderscored :: ReadP (v -> Bool);
         readUnderscored = do
         {
             readWSAndChar '_';
+            typename <- manyMaximal readIdentifierChar;
+            return (case typename of
+            {
+                "" -> \_ -> True;
+                _ -> valueIsType typename;
+            });
         };
 
         readNumber :: ReadP Rational;
@@ -153,8 +182,8 @@ module Data.Argo.Read where
             });
         } <++ do
         {
-            readUnderscored;
-            return (pure ());
+            match <- readUnderscored;
+            return (patternMatch match);
         };
 
         readField :: ReadP (ArgoPatternExpression v,ArgoExpression v v);
