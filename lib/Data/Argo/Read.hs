@@ -22,9 +22,9 @@ module Data.Argo.Read where
     readText input = case readP_to_S readExpressionToEnd input of
     {
         [(a,"")] -> return a;
-        [(_,s)] -> fail ("unrecognised: " ++ s);
-        [] -> fail "invalid";
-        ps@(_:_) -> fail ("ambiguous: " ++ (intercalate "," (fmap (showExpr . fst) ps)));
+        [(_,s)] -> fail ("parser: unrecognised: " ++ s);
+        [] -> fail "parser: invalid";
+        ps@(_:_) -> fail ("parser: ambiguous: " ++ (intercalate "," (fmap (showExpr . fst) ps)));
     } where
     {
         showExpr :: ArgoExpression v v -> String;
@@ -70,6 +70,7 @@ module Data.Argo.Read where
         goodChar '"' = False;
         goodChar '{' = False;
         goodChar '}' = False;
+        goodChar ',' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
@@ -84,6 +85,17 @@ module Data.Argo.Read where
         many1Maximal :: ReadP a -> ReadP [a];
         many1Maximal p = liftA2 (:) p (manyMaximal p);
 
+        readIntercalate :: ReadP () -> ReadP a -> ReadP [a];
+        readIntercalate int ra = (do
+        {
+            first <- ra;
+            rest <- manyMaximal (do
+            {
+                int;
+                ra;
+            });
+            return (first:rest);
+        }) <++ (return []);
 
         readQuotedString :: ReadP String;
         readQuotedString = do
@@ -165,7 +177,7 @@ module Data.Argo.Read where
         readFunction = do
         {
             readWSAndChar '{';
-            fields <- manyMaximal readField;
+            fields <- readIntercalate (readWSAndChar ',') readField;
             readWSAndChar '}';
             return (fmap valueFromFunction (assembleFunction fields));
         };
