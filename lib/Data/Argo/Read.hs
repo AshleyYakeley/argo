@@ -117,6 +117,7 @@ module Data.Argo.Read where
         goodChar ']' = False;
         goodChar ',' = False;
         goodChar ';' = False;
+        goodChar '@' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
@@ -163,8 +164,11 @@ module Data.Argo.Read where
             return (fromIntegral i);
         };
 
-        readPattern :: ReadP (ArgoPatternExpression v);
-        readPattern = do
+        readArrayPatternContents :: ReadP (ArgoPatternExpression v);
+        readArrayPatternContents = mzero;
+
+        readSinglePattern :: ReadP (ArgoPatternExpression v);
+        readSinglePattern = do
         {
             s <- readQuotedString;
             return (patternMatch (valueIsString s));
@@ -184,6 +188,24 @@ module Data.Argo.Read where
         {
             match <- readUnderscored;
             return (patternMatch match);
+        } <++ do
+        {
+            readWSAndChar '[';
+            pat <- readArrayPatternContents;
+            readWSAndChar ']';
+            return pat;
+        };
+
+        readPattern :: ReadP (ArgoPatternExpression v);
+        readPattern = do
+        {
+            pat1 <- readSinglePattern;
+            patr <- manyMaximal (do
+            {
+                readWSAndChar '@';
+                readSinglePattern;
+            });
+            return (matchAll (pat1:patr));
         };
 
         readField :: ReadP (ArgoPatternExpression v,ArgoExpression v v);

@@ -108,7 +108,13 @@ module Main where
         patternTests "{}" ["{}","{1:2}"] ["null","false","0","\"\"","[]"],
         patternTests "{1:2}" ["{1:2}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:null}","{2:2}"],
         patternTests "{1:2,1:4}" ["{1:2}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:4}","{1:null}","{2:2}"],
-        patternTests "{1:_number}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"]
+        patternTests "{1:_number}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
+        patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
+        patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]
+    ] ++
+    [
+        evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
+        evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 2],NumberValue 2]))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

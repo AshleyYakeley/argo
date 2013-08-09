@@ -173,6 +173,13 @@ module Data.Argo.Expression where
          (Compose (fmap (\(lx,a) -> fmap (\lb lr -> (a,lb (insM lx lr))) f2vtb) f1vca));
     };
 
+    matchBoth :: (Applicative f) => MatchExpression wit f () -> MatchExpression wit f () -> MatchExpression wit f ();
+    matchBoth = liftA2 (\_ _ -> ());
+
+    matchAll :: (Applicative f) => [MatchExpression wit f ()] -> MatchExpression wit f ();
+    matchAll [] = pure ();
+    matchAll (exp:exps) = matchBoth exp (matchAll exps);
+
     toSimpleValueExpression :: (Functor f) =>
      ValueExpression wit f r -> ValueExpression wit Identity (f r);
     toSimpleValueExpression (MkExpression vwits fvsr) = MkExpression vwits (Identity (\vals -> fmap (\vsr -> vsr vals) fvsr));
