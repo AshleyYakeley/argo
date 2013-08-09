@@ -14,6 +14,8 @@ module Data.Argo.Read where
         valueIsString :: String -> v -> Bool;
         valueFromNumber :: Rational -> v;
         valueIsNumber :: Rational -> v -> Bool;
+        valueFromArray :: [v] -> v;
+        valueIsArray :: v -> Maybe [v];
         valueFromFunction :: (v -> v) -> v;
         valueApply :: v -> v -> v;
     };
@@ -70,7 +72,10 @@ module Data.Argo.Read where
         goodChar '"' = False;
         goodChar '{' = False;
         goodChar '}' = False;
+        goodChar '[' = False;
+        goodChar ']' = False;
         goodChar ',' = False;
+        goodChar ';' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
@@ -182,6 +187,31 @@ module Data.Argo.Read where
             return (fmap valueFromFunction (assembleFunction fields));
         };
         
+        readArrayContents :: ReadP (ArgoExpression v v);
+        readArrayContents = do
+        {
+            exps <- readIntercalate (readWSAndChar ',') readExpression;
+            mextra <- optional (do
+            {
+                readWSAndChar ';';
+                readExpression;
+            });
+            return (fmap valueFromArray (
+            let
+            {
+                main = sequenceA exps;
+            } in
+            case mextra of
+            {
+                Just extra -> liftA2 (\m me -> case valueIsArray me of
+                {
+                    Just e -> m ++ e;
+                    Nothing -> error "non-array after semicolon";
+                }) main extra;
+                Nothing -> main;
+            }));
+        };
+        
         readTerm :: ReadP (ArgoExpression v v);
         readTerm = do
         {
@@ -199,6 +229,12 @@ module Data.Argo.Read where
                 Just v -> pure v;
                 Nothing -> monoValueSymbol i;
             });
+        } <++ do
+        {
+            readWSAndChar '[';
+            exp <- readArrayContents;
+            readWSAndChar ']';
+            return exp;
         } <++ do
         {
             readWSAndChar '(';

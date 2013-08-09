@@ -55,7 +55,7 @@ module Main where
         -- array type
         evalTest "[]" (return (ArrayValue [])),
         evalTest "[37]" (return (ArrayValue [NumberValue 37])),
-        evalTest "[null,true,47]" (return (ArrayValue [NullValue,BoolValue True,NumberValue 37])),
+        evalTest "[null,true,47]" (return (ArrayValue [NullValue,BoolValue True,NumberValue 47])),
         evalTest "[;[]]" (return (ArrayValue [])),
         evalTest "[;[\"abGc\"]]" (return (ArrayValue [StringValue "abGc"])),
         evalTest "[51;[]]" (return (ArrayValue [NumberValue 51])),
@@ -84,7 +84,12 @@ module Main where
         evalTest "{a:a} 45" (return (NumberValue 45)),
         evalTest "{a:12} 45" (return (NumberValue 12)),
         evalTest "{a:{b:a}} 27 31" (return (NumberValue 27)),
-        evalTest "{a:{b:b}} 27 31" (return (NumberValue 31))
+        evalTest "{a:{b:b}} 27 31" (return (NumberValue 31)),
+        
+        -- comments
+        evalTest "#\n34" (return (NumberValue 34)),
+        evalTest "#\n{#\na#\n:#\na#\n}#\n89#\n" (return (NumberValue 89)),
+        evalTest " #\n { #\n a #\n : #\n a #\n } #\n 89 #\n" (return (NumberValue 89))       
     ] ++ concat
         -- pattern matching wildcard & type
     [

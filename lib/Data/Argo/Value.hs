@@ -55,6 +55,11 @@ module Data.Argo.Value where
         valueIsNumber n (NumberValue n') = n == n';
         valueIsNumber _ _ = False;
         
+        valueFromArray = ArrayValue;
+        
+        valueIsArray (ArrayValue arr) = Just arr;
+        valueIsArray _ = Nothing;
+        
         valueFromFunction = FunctionValue;
         
         valueApply (FunctionValue f) x = f x;
