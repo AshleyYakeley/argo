@@ -41,8 +41,8 @@ module Data.Argo.Expression where
     };
 
     witnessedListAppend :: ListType w la -> ListType w lb -> ConstraintWitness (AppendList la lb);
-    witnessedListAppend NilListType wlb = MkConstraintWitness;
-    witnessedListAppend (ConsListType wa wla) wlb = case witnessedListAppend wla wlb of
+    witnessedListAppend NilListType _ = MkConstraintWitness;
+    witnessedListAppend (ConsListType _ wla) wlb = case witnessedListAppend wla wlb of
     {
         MkConstraintWitness -> MkConstraintWitness;
     };
@@ -157,7 +157,7 @@ module Data.Argo.Expression where
     abstract :: (SimpleWitness wit,Functor f) => wit val -> ValueExpression wit f r -> ValueExpression wit f (val -> r);
     abstract wit (MkExpression wits fvsr) = case removeAllMatching wit wits of
     {
-        MkRemoveFromList newwits ins rem -> MkExpression newwits (fmap (\vsr vals a -> vsr (ins a vals)) fvsr);
+        MkRemoveFromList newwits ins _rem -> MkExpression newwits (fmap (\vsr vals a -> vsr (ins a vals)) fvsr);
     };
 
     letBind :: (SimpleWitness wit,Applicative f) => wit val -> ValueExpression wit f val -> ValueExpression wit f r -> ValueExpression wit f r;
@@ -170,7 +170,7 @@ module Data.Argo.Expression where
         ValueExpression wit (Compose f1 f2) (a,b);
     matchBind (MkExpression matchWits f1vca) (MkExpression valueWits f2vtb) = case removeAllMatchingMany matchWits valueWits of
     {
-        MkRemoveManyFromList newValueWits insM remM -> MkExpression newValueWits
+        MkRemoveManyFromList newValueWits insM _remM -> MkExpression newValueWits
          (Compose (fmap (\(lx,a) -> fmap (\lb lr -> (a,lb (insM lx lr))) f2vtb) f1vca));
     };
 

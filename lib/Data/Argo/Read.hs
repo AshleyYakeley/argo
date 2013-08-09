@@ -19,7 +19,7 @@ module Data.Argo.Read where
     };
     
     readText :: forall v m. (ValueRead v, Monad m) => String -> m (ArgoExpression v v);
-    readText s = case readP_to_S readExpressionToEnd s of
+    readText input = case readP_to_S readExpressionToEnd input of
     {
         [(a,"")] -> return a;
         [(_,s)] -> fail ("unrecognised: " ++ s);
@@ -52,7 +52,7 @@ module Data.Argo.Read where
                 't' -> return '\t';
                 'r' -> return '\r';
                 'f' -> return '\f';
-                c -> return c;
+                _ -> return c;
             };
         };
 
@@ -122,10 +122,10 @@ module Data.Argo.Read where
         readField :: ReadP (ArgoPatternExpression v,ArgoExpression v v);
         readField = do
         {
-            pattern <- readPattern;
+            pat <- readPattern;
             readWSAndChar ':';
             result <- readExpression;
-            return (pattern,result);
+            return (pat,result);
         };
 
         argoBind :: ArgoPatternExpression v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);

@@ -2,16 +2,14 @@ module Main where
 {
     import Data.List;
     import Data.Functor.Identity;
-    import Data.Argo.Expression;
-    import Data.Argo.Read;
-    import Data.Argo.Value;
+    import Data.Argo;
 
     main :: IO ();
     main = do
     {
         s <- getContents;
-        exp <- readText s;
-        case evalExpression exp of
+        expr <- readText s;
+        case evalExpression expr of
         {
             Left syms -> do
             {

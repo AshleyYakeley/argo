@@ -19,7 +19,7 @@ module Import(module Import) where
     import Data.Ratio as Import;
     import Text.Show as Import (Show(..));
     import Text.Read as Import (Read(..),readListPrecDefault,readPrec_to_P,readP_to_Prec,readMaybe);
-    import Text.ParserCombinators.ReadP as Import(ReadP(..),char,(<++),get,satisfy,skipSpaces,eof,readP_to_S);
+    import Text.ParserCombinators.ReadP as Import(ReadP,char,(<++),get,satisfy,skipSpaces,eof,readP_to_S);
     import Text.ParserCombinators.ReadPrec as Import(minPrec);
     
     -- transformers
