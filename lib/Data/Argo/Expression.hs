@@ -182,117 +182,16 @@ module Data.Argo.Expression where
 
     patternSymbol :: wit val -> PatternExpression wit val ();
     patternSymbol = expressionSymbol (Compose (\val -> pure ((val,()),())));
-{-
-    patternCofmap :: (a -> b) -> PatternExpression wit b r -> PatternExpression wit a r;
-    patternCofmap ab (ClosedExpression (Compose bmv)) = ClosedExpression (Compose (bmv . ab));
-    patternCofmap ab (OpenExpression w expr) = OpenExpression w (patternCofmap ab expr);
--}
+
     pattern :: (q -> Maybe r) -> PatternExpression wit q r;
     pattern qmr = MkExpression NilListType (fmap (\r -> ((),r)) (Compose qmr));
 
-    
-     
-
-
-
-
-
-
-    
-{-
-    data Expression (wit :: (* -> *) -> *) (f :: * -> *) (r :: *) where
-    {
-        ClosedExpression :: f r -> Expression wit f r;
-        OpenExpression :: (Functor g) => wit g -> Expression wit f (g r) -> Expression wit f r;
-    };
-
-    instance (Functor f) => Functor (Expression wit f) where
-    {
-        fmap pq (ClosedExpression fp) = ClosedExpression (fmap pq fp);
-        fmap pq (OpenExpression w egp) = OpenExpression w (fmap (fmap pq) egp);
-    };
-
-    instance (Applicative f) => Applicative (Expression wit f) where
-    {
-        pure t = ClosedExpression (pure t);
-        (ClosedExpression fpq) <*> ep = ffmap fpq ep where
-        {
-            ffmap :: f (p -> q) -> Expression wit f p -> Expression wit f q;
-            ffmap fpq (ClosedExpression fp) = ClosedExpression (fpq <*> fp);
-            ffmap fpq (OpenExpression a egp) = OpenExpression a (ffmap (fmap fmap fpq) egp);
-        };
-        (OpenExpression a egpq) <*> ep = OpenExpression a (liftA2 (\p -> fmap (\pq -> pq p)) ep egpq);
-    };
-
-    fmap1Expression :: (Functor f1,Functor f2) =>
-        (forall g. (Functor g) => f1 (g r1) -> f2 (g r2)) -> Expression wit f1 r1 -> Expression wit f2 r2;
-    fmap1Expression f1f2 (ClosedExpression f1r1) = ClosedExpression (fmap runIdentity (f1f2 (fmap Identity f1r1)));
-    fmap1Expression f1f2 (OpenExpression w egr1) = OpenExpression w (fmap1Expression ((fmap getCompose) . f1f2 . (fmap Compose)) egr1);
-
-    expressionSymbol :: (Functor g) => f (g r) -> wit g -> Expression wit f r;
-    expressionSymbol fgr wit = OpenExpression wit (ClosedExpression fgr);
-
-
-    -- value expressions
-
-    data Combine (combine :: * -> k -> k) (wit :: * -> *) (g :: k -> k) where
-    {
-        MkCombine :: wit val -> Combine combine wit (combine val);
-    };
-
-    type ValueExpression wit = Expression (Combine (->) wit);
-
-    runValueExpression :: forall wit f r. (Functor f) => ValueExpression wit f r -> f ((forall val. wit val -> val) -> r);
-    runValueExpression (ClosedExpression fr) = fmap (\r _ab -> r) fr;
-    runValueExpression (OpenExpression (MkCombine (w :: wit val')) evr) = fmap ff (runValueExpression evr) where
-    {
-        ff :: ((forall val. wit val -> val) -> val' -> r) -> ((forall val. wit val -> val) -> r);
-        ff abbr ab = abbr ab (ab w);
-    };
-
-    valueSymbol :: (Applicative f) => wit val -> ValueExpression wit f val;
-    valueSymbol wit = expressionSymbol (pure id) (MkCombine wit);
-    
-    letBind :: (SimpleWitness wit,Applicative f) => wit val -> ValueExpression wit f val -> ValueExpression wit f r -> ValueExpression wit f r;
-    letBind wit valexp (OpenExpression cw@(MkCombine wit') exp) = case matchWitness wit wit' of
-    {
-        Just MkEqualType -> exp <*> valexp;
-        _ -> OpenExpression cw (letBind wit valexp exp);
-    };
-    letBind _wit _valexp exp = exp;
-
-
-    -- pattern expressions
-
-    type PatternExpression wit q = Expression (Combine (,) wit) (Compose ((->) q) Maybe);
-
-    patternSymbol :: wit val -> PatternExpression wit val ();
-    patternSymbol wit = expressionSymbol (Compose (\val -> pure (val,()))) (MkCombine wit);
-
-    patternCofmap :: (a -> b) -> PatternExpression wit b r -> PatternExpression wit a r;
-    patternCofmap ab (ClosedExpression (Compose bmv)) = ClosedExpression (Compose (bmv . ab));
-    patternCofmap ab (OpenExpression w expr) = OpenExpression w (patternCofmap ab expr);
-
-    pattern :: (q -> Maybe r) -> PatternExpression wit q r;
-    pattern qmr = ClosedExpression (Compose qmr);
--}
     patternMatch :: (q -> Bool) -> PatternExpression wit q ();
     patternMatch qb = pattern (\q -> if qb q then Just () else Nothing);
     
     patternMatchEq :: (Eq q) => q -> PatternExpression wit q ();
     patternMatchEq q = patternMatch ((==) q);
-{-
-    patternBind :: (SimpleWitness wit,Functor f1,Functor f2) =>
-        Expression (Combine (,) wit) f1 a ->
-        Expression (Combine (->) wit) f2 b ->
-        Expression (Combine (->) wit) (Compose f1 f2) (a,b);
-    patternBind (ClosedExpression f1a) exp = fmap1Expression (\f2gb -> Compose (fmap (\a -> fmap (\gb -> fmap (\b -> (a,b)) gb) f2gb) f1a)) exp;
-    patternBind (OpenExpression (MkCombine wit) expf1wa) exp =
-    wit :: wit val
-    expf1wa :: Expression Cp f1 (val,a)
-    exp :: Expression Cv f2 b
-    wanted :: Expression Cv (Compose f1 f2) (a,b);
--}
+
     -- monomorphic symbols, representing type val
 
     data MonoSymbol (sym :: *) (val :: *) (val' :: *) where
@@ -314,47 +213,12 @@ module Data.Argo.Expression where
    
     monoPatternSymbol :: sym -> MonoPatternExpression sym val val ();
     monoPatternSymbol sym = patternSymbol (MkMonoSymbol sym);
-{-
-    monoLetBind :: (Eq sym,Applicative f) => sym -> MonoValueExpression sym val f val -> MonoValueExpression sym val f r -> MonoValueExpression sym val f r;
-    monoLetBind sym = letBind (MkMonoSymbol sym);
--}
+
     monoPatternBind :: (Eq sym,Applicative f) =>
         MonoPatternExpression sym val q () ->
         MonoValueExpression sym val f r ->
         MonoValueExpression sym val (Compose (Compose ((->) q) Maybe) f) r;
     monoPatternBind patExp valExp = fmap snd (matchBind patExp valExp);
-    
-{-
-    matchBind :: (SimpleWitness wit,Functor f1,Functor f2) =>
-        MatchExpression wit f1 a ->
-        ValueExpression wit f2 b ->
-        ValueExpression wit (Compose f1 f2) (a,b);
-
-    type PatternExpression wit q = MatchExpression wit (Compose ((->) q) Maybe);
--}
-    
-{-    fmap (\r q -> (qmu q) >> (return r)) exp;
-    monoPatternBind (OpenExpression sym patexp) (ClosedExpression fr) = ClosedExpression 
-
-    ((sym,sym,sym,sym),q -> Maybe (val,val,val,val))
-    ((sym,sym,sym,sym),f (val -> val -> val -> val -> r))
-    ((sym),q -> Maybe (f (val -> r)))
-
-
-    monoPatternBind (OpenExpression sym patexp) valexp = ...
-    patexp :: MonoPatternExpression sym val q (val,())
-    valexp :: MonoValueExpression sym val f r
--}    
-    
-    
-{-    expressionSymbols :: MonoValueExpression sym val f r -> [sym];
-    expressionSymbols (ClosedExpression _) = [];
-    expressionSymbols (OpenExpression (MkCombine (MkMonoSymbol sym)) exp) = sym:(expressionSymbols exp);
-    
-    evalExpression :: MonoValueExpression sym val f r -> Either [sym] (f r);
-    evalExpression (ClosedExpression fr) = Right fr;
-    evalExpression exp = Left (expressionSymbols exp);
--}
     
     expressionSymbols :: MonoValueExpression sym val f r -> [sym];
     expressionSymbols (MkExpression symlist _) = listTypeToList (\(MkMonoSymbol sym) -> sym) symlist;
@@ -362,5 +226,4 @@ module Data.Argo.Expression where
     evalExpression :: (Functor f) => MonoValueExpression sym val f r -> Either [sym] (f r);
     evalExpression (MkExpression NilListType fnr) = Right (fmap (\nr -> nr ()) fnr);
     evalExpression exp = Left (expressionSymbols exp);
-
 }
