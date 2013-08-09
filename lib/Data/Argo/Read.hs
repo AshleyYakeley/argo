@@ -103,6 +103,12 @@ module Data.Argo.Read where
             return (first:rest);
         };
 
+        readUnderscored :: ReadP ();
+        readUnderscored = do
+        {
+            readWSAndChar '_';
+        };
+
         readNumber :: ReadP Rational;
         readNumber = do
         {
@@ -128,6 +134,10 @@ module Data.Argo.Read where
                 Just fv -> patternMatch fv;
                 Nothing -> monoPatternSymbol i;
             });
+        } <++ do
+        {
+            readUnderscored;
+            return (pure ());
         };
 
         readField :: ReadP (ArgoPatternExpression v,ArgoExpression v v);
