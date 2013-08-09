@@ -1,7 +1,6 @@
 module Data.Argo.Expression where
 {
     import Import;
-    import Data.Witness.List;
     import GHC.Exts(Constraint);
 
     data ConstraintWitness (constraint :: Constraint) where

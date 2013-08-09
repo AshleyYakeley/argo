@@ -18,15 +18,19 @@ module Data.Argo.Read where
         valueApply :: v -> v -> v;
     };
     
-    readText :: forall v m. (ValueRead v, Monad m) => String -> m (ArgoExpression v v);
+    readText :: forall v m. (Show v,ValueRead v, Monad m) => String -> m (ArgoExpression v v);
     readText input = case readP_to_S readExpressionToEnd input of
     {
         [(a,"")] -> return a;
         [(_,s)] -> fail ("unrecognised: " ++ s);
         [] -> fail "invalid";
-        _:_ -> fail "ambiguous";
+        ps@(_:_) -> fail ("ambiguous: " ++ (intercalate "," (fmap (showExpr . fst) ps)));
     } where
     {
+        showExpr :: ArgoExpression v v -> String;
+        showExpr (MkExpression NilListType (Identity nr)) = show (nr ());
+        showExpr exp = "(" ++ (intercalate "," (expressionSymbols exp)) ++ ") -> value";
+    
         readp :: Read a => ReadP a;
         readp = readPrec_to_P readPrec minPrec;
     
@@ -74,11 +78,18 @@ module Data.Argo.Read where
         readIdentifierChar :: ReadP Char;
         readIdentifierChar = readEscapedChar <++ (satisfy goodChar);
 
+        manyMaximal :: ReadP a -> ReadP [a];
+        manyMaximal p =  many1Maximal p <++ return [];
+
+        many1Maximal :: ReadP a -> ReadP [a];
+        many1Maximal p = liftA2 (:) p (manyMaximal p);
+
+
         readQuotedString :: ReadP String;
         readQuotedString = do
         {
             readWSAndChar '"';
-            s <- many readQuotedChar;
+            s <- manyMaximal readQuotedChar;
             _ <- char '"';
             return s;
         };
@@ -88,7 +99,7 @@ module Data.Argo.Read where
         {
             readWS;
             first <- satisfy firstChar;
-            rest <- many readIdentifierChar;
+            rest <- manyMaximal readIdentifierChar;
             return (first:rest);
         };
 
@@ -144,7 +155,7 @@ module Data.Argo.Read where
         readFunction = do
         {
             readWSAndChar '{';
-            fields <- many readField;
+            fields <- manyMaximal readField;
             readWSAndChar '}';
             return (fmap valueFromFunction (assembleFunction fields));
         };
