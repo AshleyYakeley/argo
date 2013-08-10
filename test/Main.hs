@@ -1,26 +1,17 @@
 module Main where
 {
-    import Data.Functor.Identity;
     import Test.Framework;
     import TestUtil;
     import Data.Argo;
 
-    parse :: String -> FailM Value;
-    parse s = do
-    {
-        expr <- readText s;
-        case evalExpression expr of
-        {
-            Left _syms -> fail "not closed";
-            Right (Identity (r :: Value)) -> return r;
-        };
-    };
-
     showTest :: Value -> String -> Test;
     showTest v s = pureTest s (diff s (show v));
 
+    libFinder :: String -> FailM (Maybe String);
+    libFinder _ = return Nothing;
+
     evalTest :: String -> FailM Value -> Test;
-    evalTest s mv = pureTest s (diff (show mv) (show (parse s)));
+    evalTest s mv = pureTest s (diff (show mv) (show (evaluate libFinder s :: FailM Value)));
 
     tests :: [Test];
     tests = 
@@ -74,7 +65,7 @@ module Main where
         evalTest "{_:true,_:false}" (return (FunctionValue id)),
         evalTest "{a:a}" (return (FunctionValue id)),
         evalTest "{ab:ab}" (return (FunctionValue id)),
-        evalTest "{ab:a}" (fail "not closed"),
+        evalTest "{ab:a}" (fail "undefined: a"),
         evalTest "{1:1,2:2}" (return (FunctionValue id)),
 
         -- function application
@@ -115,6 +106,9 @@ module Main where
     [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
         evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
+    ] ++
+    [
+        evalTest "$\"std\" \"fix\"" (return (FunctionValue id))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

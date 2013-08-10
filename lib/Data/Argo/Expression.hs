@@ -12,6 +12,14 @@ module Data.Argo.Expression where
     listTypeToList _wr NilListType = [];
     listTypeToList wr (ConsListType wa rest) = (wr wa):(listTypeToList wr rest);
 
+    listTypeMap :: (forall a. w1 a -> w2 a) -> ListType w1 t -> ListType w2 t;
+    listTypeMap _ww NilListType = NilListType;
+    listTypeMap ww (ConsListType wa rest) = ConsListType (ww wa) (listTypeMap ww rest);
+
+    listIdentity :: ListType Identity t -> t;
+    listIdentity NilListType = ();
+    listIdentity (ConsListType (Identity a) rest) = (a,listIdentity rest);
+
     class AppendList la lb where
     {
         type ListAppend la lb :: *;
@@ -106,6 +114,50 @@ module Data.Argo.Expression where
         };
     };
 
+    newtype EitherWitness w1 w2 a = MkEitherWitness (Either (w1 a) (w2 a));
+
+    data PartitionList wit1 wit2 l = forall l1 l2. MkPartitionList
+    {
+        listPartitionWitness1 :: ListType wit1 l1,
+        listPartitionWitness2 :: ListType wit2 l2,
+        listFromPartition :: l1 -> l2 -> l,
+        listToPartition1 :: l -> l1,
+        listToPartition2 :: l -> l2
+    };
+
+    partitionList :: ListType (EitherWitness w1 w2) l -> PartitionList w1 w2 l;
+    partitionList NilListType = MkPartitionList
+    {
+        listPartitionWitness1 = NilListType,
+        listPartitionWitness2 = NilListType,
+        listFromPartition = \() () -> (),
+        listToPartition1 = \() -> (),
+        listToPartition2 = \() -> ()
+    };
+    partitionList (ConsListType (MkEitherWitness (Left w1a)) rest) = case partitionList rest of
+    {
+        MkPartitionList pw1 pw2 fp tp1 tp2 -> MkPartitionList
+        {
+            listPartitionWitness1 = ConsListType w1a pw1,
+            listPartitionWitness2 = pw2,
+            listFromPartition = \(a,l1) l2 -> (a,fp l1 l2),
+            listToPartition1 = \(a,l) -> (a,tp1 l),
+            listToPartition2 = \(_,l) -> tp2 l
+        };
+    };
+    partitionList (ConsListType (MkEitherWitness (Right w2a)) rest) = case partitionList rest of
+    {
+        MkPartitionList pw1 pw2 fp tp1 tp2 -> MkPartitionList
+        {
+            listPartitionWitness1 = pw1,
+            listPartitionWitness2 = ConsListType w2a pw2,
+            listFromPartition = \l1 (a,l2) -> (a,fp l1 l2),
+            listToPartition1 = \(_,l) -> tp1 l,
+            listToPartition2 = \(a,l) -> (a,tp2 l)
+        };
+    };
+
+
 
 
     data Expression (combine :: * -> * -> *) (wit :: * -> *) (f :: * -> *) (r :: *) where
@@ -115,6 +167,9 @@ module Data.Argo.Expression where
 
     expressionSymbol :: f (combine (val,()) r) -> wit val -> Expression combine wit f r;
     expressionSymbol fcvr wit = MkExpression (ConsListType wit NilListType) fcvr;
+
+    witMap :: (forall a. wit1 a -> wit2 a) -> Expression combine wit1 f r -> Expression combine wit2 f r;
+    witMap ww (MkExpression wits fcvr) = MkExpression (listTypeMap ww wits) fcvr;
 
     type ValueExpression = Expression (->);
     type MatchExpression = Expression (,);
@@ -159,9 +214,17 @@ module Data.Argo.Expression where
         MkRemoveFromList newwits ins _rem -> MkExpression newwits (fmap (\vsr vals a -> vsr (ins a vals)) fvsr);
     };
 
+    reduceSymbols :: (Functor f) => (forall a. witP a -> Either (witQ a) a) -> ValueExpression witP f r -> ValueExpression witQ f r;
+    reduceSymbols wm (MkExpression wits fvsr) =
+     case partitionList (listTypeMap (\witP -> MkEitherWitness (fmap Identity (wm witP))) wits) of
+    {
+        MkPartitionList pw1 pw2 fp _tp1 _tp2 -> MkExpression pw1 (fmap (\vpr vq -> vpr (fp vq (listIdentity pw2))) fvsr);
+    };
+
+    
+
     letBind :: (SimpleWitness wit,Applicative f) => wit val -> ValueExpression wit f val -> ValueExpression wit f r -> ValueExpression wit f r;
     letBind wit valExp exp = (abstract wit exp) <*> valExp;
-
 
     matchBind :: (SimpleWitness wit,Functor f1,Functor f2) =>
         MatchExpression wit f1 a ->
@@ -235,6 +298,10 @@ module Data.Argo.Expression where
 
     type MonoValueExpression sym val = ValueExpression (MonoSymbol sym val);
     type MonoPatternExpression sym val q = PatternExpression (MonoSymbol sym val) q;
+
+    monoWitMap :: (sym1 -> sym2) ->
+     Expression combine (MonoSymbol sym1 val) f r -> Expression combine (MonoSymbol sym2 val) f r;
+    monoWitMap ss = witMap (\(MkMonoSymbol sym1) -> MkMonoSymbol (ss sym1));
     
     monoValueSymbol :: (Applicative f) => sym -> MonoValueExpression sym val f val;
     monoValueSymbol sym = valueSymbol (MkMonoSymbol sym);
@@ -250,6 +317,14 @@ module Data.Argo.Expression where
     
     expressionSymbols :: MonoValueExpression sym val f r -> [sym];
     expressionSymbols (MkExpression symlist _) = listTypeToList (\(MkMonoSymbol sym) -> sym) symlist;
+    
+    monoReduceSymbols :: (Functor f) =>
+     (sym1 -> Either sym2 val) -> MonoValueExpression sym1 val f r -> MonoValueExpression sym2 val f r;
+    monoReduceSymbols ss = reduceSymbols (\(MkMonoSymbol sym1) -> case ss sym1 of
+    {
+        Left sym2 -> Left (MkMonoSymbol sym2);
+        Right val -> Right val;
+    });
     
     evalExpression :: (Functor f) => MonoValueExpression sym val f r -> Either [sym] (f r);
     evalExpression (MkExpression NilListType fnr) = Right (fmap (\nr -> nr ()) fnr);

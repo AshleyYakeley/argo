@@ -3,7 +3,15 @@ module Data.Argo.Read where
     import Import;
     import Data.Argo.Expression;
     
-    type ArgoExpression v = MonoValueExpression String v Identity;
+    data Reference = LibReference String | SymbolReference String deriving (Eq);
+    
+    instance Show Reference where
+    {
+        show (SymbolReference s) = s;
+        show (LibReference s) = '$':(show s);
+    };
+    
+    type ArgoExpression v = MonoValueExpression Reference v Identity;
     type ArgoPatternExpression v q = MonoPatternExpression String v q ();
     
     class ValueRead v where
@@ -21,8 +29,20 @@ module Data.Argo.Read where
         valueIsFunction :: v -> Maybe (v -> v);
         valueIsType :: String -> v -> Bool;
     };
+
+    evaluate :: (Show v,ValueRead v,Monad m) => (String -> m (Maybe String)) -> String -> m v;
+    evaluate _libReader s = do
+    {
+        expr <- readText s;
+        --monoReduceSymbols 
+        case evalExpression expr of
+        {
+            Left syms -> fail ("undefined: " ++ (intercalate ", " (fmap show syms)));
+            Right (Identity r) -> return r;
+        };
+    };
     
-    readText :: forall v m. (Show v,ValueRead v, Monad m) => String -> m (ArgoExpression v v);
+    readText :: forall v m. (Show v,ValueRead v,Monad m) => String -> m (ArgoExpression v v);
     readText input = case readP_to_S readExpressionToEnd input of
     {
         [(a,"")] -> return a;
@@ -33,7 +53,7 @@ module Data.Argo.Read where
     {
         showExpr :: ArgoExpression v v -> String;
         showExpr (MkExpression NilListType (Identity nr)) = show (nr ());
-        showExpr exp = "(" ++ (intercalate "," (expressionSymbols exp)) ++ ") -> value";
+        showExpr exp = "(" ++ (intercalate "," (fmap show (expressionSymbols exp))) ++ ") -> value";
     
         readp :: Read a => ReadP a;
         readp = readPrec_to_P readPrec minPrec;
@@ -271,7 +291,7 @@ module Data.Argo.Read where
 
         argoBind :: ArgoPatternExpression v v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);
         argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
-         (toSimpleValueExpression (monoPatternBind pat exp));
+         (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
         assembleFunction :: [(ArgoPatternExpression v v,ArgoExpression v v)] -> ArgoExpression v (v -> v);
         assembleFunction [] = pure (\_ -> valueNull);
@@ -330,7 +350,7 @@ module Data.Argo.Read where
             return (case valueConstant i of
             {
                 Just v -> pure v;
-                Nothing -> monoValueSymbol i;
+                Nothing -> monoValueSymbol (SymbolReference i);
             });
         } <++ do
         {
@@ -344,7 +364,12 @@ module Data.Argo.Read where
             exp <- readExpression;
             readWSAndChar ')';
             return exp;
-        } <++ readFunction;
+        } <++ readFunction <++ do
+        {
+            readWSAndChar '$';
+            libname <- readQuotedString;
+            return (monoValueSymbol (LibReference libname));
+        };
         
         readExpression :: ReadP (ArgoExpression v v);
         readExpression = do
