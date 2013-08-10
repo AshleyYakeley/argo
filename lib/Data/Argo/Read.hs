@@ -5,6 +5,17 @@ module Data.Argo.Read where
     
     data Reference = LibReference String | SymbolReference String deriving (Eq);
     
+    partitionReferences :: [Reference] -> ([String],[String]);
+    partitionReferences [] = ([],[]);
+    partitionReferences (LibReference s:rest) = case partitionReferences rest of
+    {
+        (a,b) -> (s:a,b);
+    };
+    partitionReferences (SymbolReference s:rest) = case partitionReferences rest of
+    {
+        (a,b) -> (a,s:b);
+    };
+    
     instance Show Reference where
     {
         show (SymbolReference s) = s;
@@ -30,15 +41,23 @@ module Data.Argo.Read where
         valueIsType :: String -> v -> Bool;
     };
 
-    evaluate :: (Show v,ValueRead v,Monad m) => (String -> m (Maybe String)) -> String -> m v;
-    evaluate _libReader s = do
+    evaluate :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m (Maybe String)) -> String -> m v;
+    evaluate libReader s = do
     {
         expr <- readText s;
-        --monoReduceSymbols 
-        case evalExpression expr of
+        (Identity r) <- monoEvaluateExpression resolve expr;
+        return r;
+    } where
+    {
+        resolve (SymbolReference sym) = fail ("undefined: " ++ sym);
+        resolve (LibReference libname) = do
         {
-            Left syms -> fail ("undefined: " ++ (intercalate ", " (fmap show syms)));
-            Right (Identity r) -> return r;
+            mlibtext <- libReader libname;
+            case mlibtext of
+            {
+                Just libtext -> evaluate libReader libtext;
+                Nothing -> fail ("not found: $" ++ (show libname));
+            };
         };
     };
     

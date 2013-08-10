@@ -20,6 +20,10 @@ module Data.Argo.Expression where
     listIdentity NilListType = ();
     listIdentity (ConsListType (Identity a) rest) = (a,listIdentity rest);
 
+    listSequence ::  (Applicative f) => ListType f t -> f t;
+    listSequence NilListType = pure ();
+    listSequence (ConsListType fa rest) = liftA2 (,) fa (listSequence rest);
+
     class AppendList la lb where
     {
         type ListAppend la lb :: *;
@@ -221,10 +225,12 @@ module Data.Argo.Expression where
         MkPartitionList pw1 pw2 fp _tp1 _tp2 -> MkExpression pw1 (fmap (\vpr vq -> vpr (fp vq (listIdentity pw2))) fvsr);
     };
 
-    
-
     letBind :: (SimpleWitness wit,Applicative f) => wit val -> ValueExpression wit f val -> ValueExpression wit f r -> ValueExpression wit f r;
     letBind wit valExp exp = (abstract wit exp) <*> valExp;
+
+    evaluateExpression :: (Applicative m,Functor f) => (forall val. wit val -> m val) -> ValueExpression wit f r -> m (f r);
+    evaluateExpression resolve (MkExpression wits fvr) =
+     fmap (\vals -> fmap (\vr -> vr vals) fvr) (listSequence (listTypeMap resolve wits));
 
     matchBind :: (SimpleWitness wit,Functor f1,Functor f2) =>
         MatchExpression wit f1 a ->
@@ -309,6 +315,11 @@ module Data.Argo.Expression where
     monoPatternSymbol :: sym -> MonoPatternExpression sym val val ();
     monoPatternSymbol sym = patternSymbol (MkMonoSymbol sym);
 
+
+    monoLetBind :: (SimpleWitness wit,Eq sym,Applicative f) =>
+     sym -> MonoValueExpression sym val f val -> MonoValueExpression sym val f r -> MonoValueExpression sym val f r;
+    monoLetBind sym = letBind (MkMonoSymbol sym);
+
     monoPatternBind :: (Eq sym,Applicative f) =>
         MonoPatternExpression sym val q () ->
         MonoValueExpression sym val f r ->
@@ -325,6 +336,9 @@ module Data.Argo.Expression where
         Left sym2 -> Left (MkMonoSymbol sym2);
         Right val -> Right val;
     });
+
+    monoEvaluateExpression :: (Applicative m,Functor f) => (sym -> m val) -> MonoValueExpression sym val f r -> m (f r);
+    monoEvaluateExpression smv = evaluateExpression (\(MkMonoSymbol sym) -> smv sym);
     
     evalExpression :: (Functor f) => MonoValueExpression sym val f r -> Either [sym] (f r);
     evalExpression (MkExpression NilListType fnr) = Right (fmap (\nr -> nr ()) fnr);
