@@ -11,7 +11,7 @@ module Main where
     libFinder _ = return Nothing;
 
     evalTest :: String -> FailM Value -> Test;
-    evalTest s mv = pureTest s (diff (show mv) (show (evaluate libFinder s :: FailM Value)));
+    evalTest s mv = pureTest s (diff (show mv) (show (evaluateWithLibs libFinder s :: FailM Value)));
 
     tests :: [Test];
     tests = 
@@ -108,7 +108,7 @@ module Main where
         evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
     ] ++
     [
-        evalTest "$\"std\" \"fix\"" (return (FunctionValue id))
+        evalTest "$\"\" \"fix\"" (return (FunctionValue id))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

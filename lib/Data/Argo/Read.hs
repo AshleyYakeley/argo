@@ -41,8 +41,26 @@ module Data.Argo.Read where
         valueIsType :: String -> v -> Bool;
     };
 
-    evaluate :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m (Maybe String)) -> String -> m v;
-    evaluate libReader s = do
+    stdlib :: (ValueRead v) => v;
+    stdlib = valueFromFunction (\_ -> valueNull);
+
+    evaluateWithLibs :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m (Maybe String)) -> String -> m v;
+    evaluateWithLibs libReader = evaluate lookup where
+    {
+        lookup "" = return stdlib;
+        lookup libname = do
+        {
+            mlibtext <- libReader libname;
+            case mlibtext of
+            {
+                Just libtext -> evaluateWithLibs libReader libtext;
+                Nothing -> fail ("not found: $" ++ (show libname));
+            };
+        };
+    };
+
+    evaluate :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m v) -> String -> m v;
+    evaluate libLookup s = do
     {
         expr <- readText s;
         (Identity r) <- monoEvaluateExpression resolve expr;
@@ -50,15 +68,7 @@ module Data.Argo.Read where
     } where
     {
         resolve (SymbolReference sym) = fail ("undefined: " ++ sym);
-        resolve (LibReference libname) = do
-        {
-            mlibtext <- libReader libname;
-            case mlibtext of
-            {
-                Just libtext -> evaluate libReader libtext;
-                Nothing -> fail ("not found: $" ++ (show libname));
-            };
-        };
+        resolve (LibReference libname) = libLookup libname;
     };
     
     readText :: forall v m. (Show v,ValueRead v,Monad m) => String -> m (ArgoExpression v v);
