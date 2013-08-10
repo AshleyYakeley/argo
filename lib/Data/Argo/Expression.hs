@@ -173,6 +173,9 @@ module Data.Argo.Expression where
          (Compose (fmap (\(lx,a) -> fmap (\lb lr -> (a,lb (insM lx lr))) f2vtb) f1vca));
     };
 
+    matchSimple :: (Functor f) => f r -> MatchExpression wit f r;
+    matchSimple fr = MkExpression NilListType (fmap (\r -> ((),r)) fr);
+
     matchBoth :: (Applicative f) => MatchExpression wit f () -> MatchExpression wit f () -> MatchExpression wit f ();
     matchBoth = liftA2 (\_ _ -> ());
 
@@ -191,13 +194,31 @@ module Data.Argo.Expression where
     patternSymbol = expressionSymbol (Compose (\val -> pure ((val,()),())));
 
     pattern :: (q -> Maybe r) -> PatternExpression wit q r;
-    pattern qmr = MkExpression NilListType (fmap (\r -> ((),r)) (Compose qmr));
+    pattern qmr = matchSimple (Compose qmr);
 
     patternMatch :: (q -> Bool) -> PatternExpression wit q ();
     patternMatch qb = pattern (\q -> if qb q then Just () else Nothing);
     
     patternMatchEq :: (Eq q) => q -> PatternExpression wit q ();
     patternMatchEq q = patternMatch ((==) q);
+    
+    composePattern :: PatternExpression wit q r -> PatternExpression wit p q -> PatternExpression wit p r;
+    composePattern (MkExpression wits1 (Compose qmv1r)) (MkExpression wits2 (Compose pmv2q)) =
+     case witnessedListAppend wits1 wits2 of
+    {
+        MkConstraintWitness -> MkExpression (listAppendWitness wits1 wits2) (Compose (\p -> do
+        {
+            (vals2,q) <- pmv2q p;
+            (vals1,r) <- qmv1r q;
+            return (listJoin vals1 vals2,r);
+        }));
+    };
+    
+    subPattern :: (q -> Maybe p) -> PatternExpression wit p r -> PatternExpression wit q r;
+    subPattern qmp patp = composePattern patp (pattern qmp);
+    
+    patternMatchPair :: PatternExpression wit p () -> PatternExpression wit q () -> PatternExpression wit (p,q) ();
+    patternMatchPair patp patq = matchBoth (subPattern (Just . fst) patp) (subPattern (Just . snd) patq);
 
     -- monomorphic symbols, representing type val
 

@@ -114,7 +114,7 @@ module Main where
     ] ++
     [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
-        evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 2],NumberValue 2]))
+        evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;
