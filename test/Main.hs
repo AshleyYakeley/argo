@@ -106,8 +106,8 @@ module Main where
         patternTests "[;_]" ["[]","[null]","[[]]"] ["null","false","0","\"\"","{}"],
         patternTests "_function" ["{}"] ["null","false","0","\"\"","[]"],
         patternTests "{}" ["{}","{1:2}"] ["null","false","0","\"\"","[]"],
-        patternTests "{1:2}" ["{1:2}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:null}","{2:2}"],
-        patternTests "{1:2,1:4}" ["{1:2}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:4}","{1:null}","{2:2}"],
+        patternTests "{1:2}" ["{1:2}","{1:2,1:4}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:null}","{2:2}"],
+        patternTests "{1:2,3:4}" ["{1:2,3:4}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:4}","{1:null}","{2:2}"],
         patternTests "{1:_number}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
         patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]

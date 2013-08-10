@@ -23,6 +23,7 @@ module Data.Argo.Value where
     
     instance ValueRead Value where
     {
+        valueNull = NullValue;
         valueConstant "null" = Just NullValue;
         valueConstant "true" = Just (BoolValue True);
         valueConstant "false" = Just (BoolValue False);
@@ -62,8 +63,8 @@ module Data.Argo.Value where
 
         valueFromFunction = FunctionValue;
 
-        valueApply (FunctionValue f) x = f x;
-        valueApply _ _ = error "non-function application";
+        valueIsFunction (FunctionValue f) = Just f;
+        valueIsFunction _ = Nothing;
 
         valueIsType "null" NullValue = True;
         valueIsType "boolean" (BoolValue _) = True;

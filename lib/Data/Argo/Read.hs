@@ -8,6 +8,7 @@ module Data.Argo.Read where
     
     class ValueRead v where
     {
+        valueNull :: v;
         valueConstant :: String -> Maybe v;
         valueIsConstant :: String -> Maybe (v -> Bool);
         valueFromString :: String -> v;
@@ -17,7 +18,7 @@ module Data.Argo.Read where
         valueFromArray :: [v] -> v;
         valueIsArray :: v -> Maybe [v];
         valueFromFunction :: (v -> v) -> v;
-        valueApply :: v -> v -> v;
+        valueIsFunction :: v -> Maybe (v -> v);
         valueIsType :: String -> v -> Bool;
     };
     
@@ -184,6 +185,34 @@ module Data.Argo.Read where
             listPat (Just extra) [] = subPattern (Just . valueFromArray) extra;
         };
 
+        readConstExpression :: ReadP v;
+        readConstExpression = do
+        {
+            exp <- readExpression;
+            case evalExpression exp of
+            {
+                Right (Identity v) -> return v;
+                Left _ -> mzero;
+            };
+        };
+
+        readPatternField :: ReadP (ArgoPatternExpression v (v -> v));
+        readPatternField = do
+        {
+            -- arg <- readExpression;
+            arg <- readConstExpression;
+            readWSAndChar ':';
+            pat <- readPattern;
+            return (subPattern (\f -> Just (f arg)) pat);
+        };
+
+        readFunctionPatternContents :: ReadP (ArgoPatternExpression v v);
+        readFunctionPatternContents = do
+        {
+            fields <- readIntercalate (readWSAndChar ',') readPatternField;
+            return (subPattern valueIsFunction (matchAll fields));
+        };
+
         readSinglePattern :: ReadP (ArgoPatternExpression v v);
         readSinglePattern = do
         {
@@ -210,6 +239,12 @@ module Data.Argo.Read where
             readWSAndChar '[';
             pat <- readArrayPatternContents;
             readWSAndChar ']';
+            return pat;
+        } <++ do
+        {
+            readWSAndChar '{';
+            pat <- readFunctionPatternContents;
+            readWSAndChar '}';
             return pat;
         };
 
@@ -239,7 +274,7 @@ module Data.Argo.Read where
          (toSimpleValueExpression (monoPatternBind pat exp));
 
         assembleFunction :: [(ArgoPatternExpression v v,ArgoExpression v v)] -> ArgoExpression v (v -> v);
-        assembleFunction [] = pure (\_ -> error "no match in {...}");
+        assembleFunction [] = pure (\_ -> valueNull);
         assembleFunction ((pat,exp):ps) = liftA2 (\vmv vv v -> case vmv v of
         {
             Just r -> r;
@@ -318,8 +353,12 @@ module Data.Argo.Read where
             return (applyArgs f args);
         } where
         {
-            applyArgs f [] = f;
-            applyArgs f (a:args) = applyArgs (liftA2 valueApply f a) args;
+            applyArgs expf [] = expf;
+            applyArgs expf (expa:args) = applyArgs (liftA2 (\f a -> case valueIsFunction f of
+            {
+                Just ff -> ff a;
+                Nothing -> error "non-function application";
+            }) expf expa) args;
         };
         
         readExpressionToEnd :: ReadP (ArgoExpression v v);
