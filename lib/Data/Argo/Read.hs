@@ -31,6 +31,9 @@ module Data.Argo.Read where
         fromValueMaybe :: value -> Maybe t;
     };
 
+    isValue :: (Eq t,SubValue value t) => t -> value -> Bool;
+    isValue t v = fromValueMaybe v == Just t;
+
     fromValue :: (SubValue value t) => value -> t;
     fromValue v = case fromValueMaybe v of
     {
@@ -48,20 +51,7 @@ module Data.Argo.Read where
         SubValue v (v -> v)
     ) => ValueRead v where
     {
-    
-        valueNull :: v;
-        valueConstant :: String -> Maybe v;
-        valueIsConstant :: String -> Maybe (v -> Bool);
-        valueFromString :: String -> v;
-        valueIsString :: String -> v -> Bool;
-        valueFromNumber :: Rational -> v;
-        valueIsNumber :: Rational -> v -> Bool;
-        valueFromArray :: [v] -> v;
-        valueIsArray :: v -> Maybe [v];
-        valueFromFunction :: (v -> v) -> v;
-        valueIsFunction :: v -> Maybe (v -> v);
-
-        valueIsType :: String -> v -> Bool;
+        valueTypeName :: v -> String;
     };
 
     evaluateWithLibs :: (Show v,ValueRead v,Applicative m,Monad m) => v -> (String -> m (Maybe String)) -> String -> m v;
@@ -222,7 +212,7 @@ module Data.Argo.Read where
             return (case typename of
             {
                 "" -> \_ -> True;
-                _ -> valueIsType typename;
+                _ -> \v -> typename == (valueTypeName v);
             });
         };
 
@@ -243,7 +233,7 @@ module Data.Argo.Read where
                 readWSAndChar ';';
                 readPattern;
             });
-            return (subPattern valueIsArray (listPat mextra pats));
+            return (subPattern fromValueMaybe (listPat mextra pats));
         } where
         {
             maybeSplit (a:b) = Just (a,b);
@@ -251,7 +241,7 @@ module Data.Argo.Read where
             
             listPat mextra (pat1:patr) = subPattern maybeSplit (patternMatchPair pat1 (listPat mextra patr));
             listPat Nothing [] = patternMatch null;
-            listPat (Just extra) [] = subPattern (Just . valueFromArray) extra;
+            listPat (Just extra) [] = subPattern (Just . toValue) extra;
         };
 
         readConstExpression :: ReadP v;
@@ -279,25 +269,27 @@ module Data.Argo.Read where
         readFunctionPatternContents = do
         {
             fields <- readIntercalate (readWSAndChar ',') readPatternField;
-            return (subPattern valueIsFunction (matchAll fields));
+            return (subPattern fromValueMaybe (matchAll fields));
         };
 
         readSinglePattern :: ReadP (ArgoPatternExpression v v);
         readSinglePattern = do
         {
             s <- readQuotedString;
-            return (patternMatch (valueIsString s));
+            return (patternMatch (isValue s));
         } <++ do
         {
             n <- readNumber;
-            return (patternMatch (valueIsNumber n));
+            return (patternMatch (isValue n));
         } <++ do
         {
             i <- readIdentifier;
-            return (case valueIsConstant i of
+            return (case i of
             {
-                Just fv -> patternMatch fv;
-                Nothing -> monoPatternSymbol i;
+                "null" -> patternMatch (isValue ());
+                "true" -> patternMatch (isValue True);
+                "false" -> patternMatch (isValue False);
+                _ -> monoPatternSymbol i;
             });
         } <++ do
         {
@@ -343,7 +335,7 @@ module Data.Argo.Read where
          (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
         assembleFunction :: [(ArgoPatternExpression v v,ArgoExpression v v)] -> ArgoExpression v (v -> v);
-        assembleFunction [] = pure (\_ -> valueNull);
+        assembleFunction [] = pure (\_ -> toValue ());
         assembleFunction ((pat,exp):ps) = liftA2 (\vmv vv v -> case vmv v of
         {
             Just r -> r;
@@ -356,7 +348,7 @@ module Data.Argo.Read where
             readWSAndChar '{';
             fields <- readIntercalate (readWSAndChar ',') readField;
             readWSAndChar '}';
-            return (fmap valueFromFunction (assembleFunction fields));
+            return (fmap toValue (assembleFunction fields));
         };
         
         readArrayContents :: ReadP (ArgoExpression v v);
@@ -368,14 +360,14 @@ module Data.Argo.Read where
                 readWSAndChar ';';
                 readExpression;
             });
-            return (fmap valueFromArray (
+            return (fmap toValue (
             let
             {
                 main = sequenceA exps;
             } in
             case mextra of
             {
-                Just extra -> liftA2 (\m me -> case valueIsArray me of
+                Just extra -> liftA2 (\m me -> case fromValueMaybe me of
                 {
                     Just e -> m ++ e;
                     Nothing -> error "non-array after semicolon";
@@ -388,18 +380,20 @@ module Data.Argo.Read where
         readTerm = do
         {
             s <- readQuotedString;
-            return (pure (valueFromString s));
+            return (pure (toValue s));
         } <++ do
         {
             n <- readNumber;
-            return (pure (valueFromNumber n));
+            return (pure (toValue n));
         } <++ do
         {
             i <- readIdentifier;
-            return (case valueConstant i of
+            return (case i of
             {
-                Just v -> pure v;
-                Nothing -> monoValueSymbol (SymbolReference i);
+                "null" -> pure (toValue ());
+                "true" -> pure (toValue True);
+                "false" -> pure (toValue False);
+                _ -> monoValueSymbol (SymbolReference i);
             });
         } <++ do
         {
@@ -428,7 +422,7 @@ module Data.Argo.Read where
         } where
         {
             applyArgs expf [] = expf;
-            applyArgs expf (expa:args) = applyArgs (liftA2 (\f a -> case valueIsFunction f of
+            applyArgs expf (expa:args) = applyArgs (liftA2 (\f a -> case fromValueMaybe f of
             {
                 Just ff -> ff a;
                 Nothing -> error "non-function application";

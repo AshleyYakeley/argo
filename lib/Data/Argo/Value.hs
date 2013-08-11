@@ -84,55 +84,12 @@ module Data.Argo.Value where
     
     instance ValueRead Value where
     {
-        valueNull = NullValue;
-        valueConstant "null" = Just NullValue;
-        valueConstant "true" = Just (BoolValue True);
-        valueConstant "false" = Just (BoolValue False);
-        valueConstant _ = Nothing;
-
-        valueIsConstant "null" = Just (\v -> case v of
-        {
-            NullValue -> True;
-            _ -> False;
-        });
-        valueIsConstant "true" = Just (\v -> case v of
-        {
-            BoolValue True -> True;
-            _ -> False;
-        });
-        valueIsConstant "false" = Just (\v -> case v of
-        {
-            BoolValue False -> True;
-            _ -> False;
-        });
-        valueIsConstant _ = Nothing;
-
-        valueFromString = StringValue;
-
-        valueIsString s (StringValue s') = s == s';
-        valueIsString _ _ = False;
-
-        valueFromNumber = NumberValue;
-
-        valueIsNumber n (NumberValue n') = n == n';
-        valueIsNumber _ _ = False;
-
-        valueFromArray = ArrayValue;
-
-        valueIsArray (ArrayValue arr) = Just arr;
-        valueIsArray _ = Nothing;
-
-        valueFromFunction = FunctionValue;
-
-        valueIsFunction (FunctionValue f) = Just f;
-        valueIsFunction _ = Nothing;
-
-        valueIsType "null" NullValue = True;
-        valueIsType "boolean" (BoolValue _) = True;
-        valueIsType "number" (NumberValue _) = True;
-        valueIsType "string" (StringValue _) = True;
-        valueIsType "array" (ArrayValue _) = True;
-        valueIsType "function" (FunctionValue _) = True;
-        valueIsType _ _ = False;
+        valueTypeName NullValue = "null";
+        valueTypeName (BoolValue _) = "boolean";
+        valueTypeName (NumberValue _) = "number";
+        valueTypeName (StringValue _) = "string";
+        valueTypeName (ArrayValue _) = "array";
+        valueTypeName (FunctionValue _) = "function";
+        valueTypeName (ActionValue _) = "function";
     };
 }
