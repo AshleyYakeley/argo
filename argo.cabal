@@ -16,6 +16,7 @@ library
     exposed-modules:    
         Data.Argo
         Data.Argo.Expression
+        Data.Argo.MonoExpression
         Data.Argo.Value
         Data.Argo.Read
         Data.Argo.StdLib

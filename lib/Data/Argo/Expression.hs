@@ -218,13 +218,6 @@ module Data.Argo.Expression where
         MkRemoveFromList newwits ins _rem -> MkExpression newwits (fmap (\vsr vals a -> vsr (ins a vals)) fvsr);
     };
 
-    reduceSymbols :: (Functor f) => (forall a. witP a -> Either (witQ a) a) -> ValueExpression witP f r -> ValueExpression witQ f r;
-    reduceSymbols wm (MkExpression wits fvsr) =
-     case partitionList (listTypeMap (\witP -> MkEitherWitness (fmap Identity (wm witP))) wits) of
-    {
-        MkPartitionList pw1 pw2 fp _tp1 _tp2 -> MkExpression pw1 (fmap (\vpr vq -> vpr (fp vq (listIdentity pw2))) fvsr);
-    };
-
     letBind :: (SimpleWitness wit,Applicative f) => wit val -> ValueExpression wit f val -> ValueExpression wit f r -> ValueExpression wit f r;
     letBind wit valExp exp = (abstract wit exp) <*> valExp;
 
@@ -288,59 +281,4 @@ module Data.Argo.Expression where
     
     patternMatchPair :: PatternExpression wit p () -> PatternExpression wit q () -> PatternExpression wit (p,q) ();
     patternMatchPair patp patq = matchBoth (subPattern (Just . fst) patp) (subPattern (Just . snd) patq);
-
-    -- monomorphic symbols, representing type val
-
-    data MonoSymbol (sym :: *) (val :: *) (val' :: *) where
-    {
-        MkMonoSymbol :: sym -> MonoSymbol sym val val;
-    };
-
-    instance (Eq sym) => SimpleWitness (MonoSymbol sym val) where
-    {
-        matchWitness (MkMonoSymbol sym1) (MkMonoSymbol sym2) | sym1 == sym2 = Just MkEqualType;
-        matchWitness _ _ = Nothing;
-    };
-
-    type MonoValueExpression sym val = ValueExpression (MonoSymbol sym val);
-    type MonoPatternExpression sym val q = PatternExpression (MonoSymbol sym val) q;
-
-    monoWitMap :: (sym1 -> sym2) ->
-     Expression combine (MonoSymbol sym1 val) f r -> Expression combine (MonoSymbol sym2 val) f r;
-    monoWitMap ss = witMap (\(MkMonoSymbol sym1) -> MkMonoSymbol (ss sym1));
-    
-    monoValueSymbol :: (Applicative f) => sym -> MonoValueExpression sym val f val;
-    monoValueSymbol sym = valueSymbol (MkMonoSymbol sym);
-   
-    monoPatternSymbol :: sym -> MonoPatternExpression sym val val ();
-    monoPatternSymbol sym = patternSymbol (MkMonoSymbol sym);
-
-
-    monoLetBind :: (SimpleWitness wit,Eq sym,Applicative f) =>
-     sym -> MonoValueExpression sym val f val -> MonoValueExpression sym val f r -> MonoValueExpression sym val f r;
-    monoLetBind sym = letBind (MkMonoSymbol sym);
-
-    monoPatternBind :: (Eq sym,Applicative f) =>
-        MonoPatternExpression sym val q () ->
-        MonoValueExpression sym val f r ->
-        MonoValueExpression sym val (Compose (Compose ((->) q) Maybe) f) r;
-    monoPatternBind patExp valExp = fmap snd (matchBind patExp valExp);
-    
-    expressionSymbols :: MonoValueExpression sym val f r -> [sym];
-    expressionSymbols (MkExpression symlist _) = listTypeToList (\(MkMonoSymbol sym) -> sym) symlist;
-    
-    monoReduceSymbols :: (Functor f) =>
-     (sym1 -> Either sym2 val) -> MonoValueExpression sym1 val f r -> MonoValueExpression sym2 val f r;
-    monoReduceSymbols ss = reduceSymbols (\(MkMonoSymbol sym1) -> case ss sym1 of
-    {
-        Left sym2 -> Left (MkMonoSymbol sym2);
-        Right val -> Right val;
-    });
-
-    monoEvaluateExpression :: (Applicative m,Functor f) => (sym -> m val) -> MonoValueExpression sym val f r -> m (f r);
-    monoEvaluateExpression smv = evaluateExpression (\(MkMonoSymbol sym) -> smv sym);
-    
-    evalExpression :: (Functor f) => MonoValueExpression sym val f r -> Either [sym] (f r);
-    evalExpression (MkExpression NilListType fnr) = Right (fmap (\nr -> nr ()) fnr);
-    evalExpression exp = Left (expressionSymbols exp);
 }

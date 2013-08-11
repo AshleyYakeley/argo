@@ -2,6 +2,7 @@ module Data.Argo.Read where
 {
     import Import;
     import Data.Argo.Expression;
+    import Data.Argo.MonoExpression;
     
     data Reference = LibReference String | SymbolReference String deriving (Eq);
     
@@ -248,11 +249,8 @@ module Data.Argo.Read where
         readConstExpression = do
         {
             exp <- readExpression;
-            case evalExpression exp of
-            {
-                Right (Identity v) -> return v;
-                Left _ -> mzero;
-            };
+            (Identity v) <- monoEvaluateExpression (\_ -> mzero) exp;
+            return v;
         };
 
         readPatternField :: ReadP (ArgoPatternExpression v (v -> v));
