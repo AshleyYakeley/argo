@@ -18,6 +18,7 @@ library
         Data.Argo.Expression
         Data.Argo.Value
         Data.Argo.Read
+        Data.Argo.StdLib
     other-modules:      
         Import
     build-depends:

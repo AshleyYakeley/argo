@@ -25,8 +25,30 @@ module Data.Argo.Read where
     type ArgoExpression v = MonoValueExpression Reference v Identity;
     type ArgoPatternExpression v q = MonoPatternExpression String v q ();
     
-    class ValueRead v where
+    class SubValue value t where
     {
+        toValue :: t -> value;
+        fromValueMaybe :: value -> Maybe t;
+    };
+
+    fromValue :: (SubValue value t) => value -> t;
+    fromValue v = case fromValueMaybe v of
+    {
+        Just t -> t;
+        Nothing -> error "wrong type";
+    };
+    
+    class
+    (
+        SubValue v (),
+        SubValue v Bool,
+        SubValue v Rational,
+        SubValue v String,
+        SubValue v [v],
+        SubValue v (v -> v)
+    ) => ValueRead v where
+    {
+    
         valueNull :: v;
         valueConstant :: String -> Maybe v;
         valueIsConstant :: String -> Maybe (v -> Bool);
@@ -38,14 +60,12 @@ module Data.Argo.Read where
         valueIsArray :: v -> Maybe [v];
         valueFromFunction :: (v -> v) -> v;
         valueIsFunction :: v -> Maybe (v -> v);
+
         valueIsType :: String -> v -> Bool;
     };
 
-    stdlib :: (ValueRead v) => v;
-    stdlib = valueFromFunction (\_ -> valueNull);
-
-    evaluateWithLibs :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m (Maybe String)) -> String -> m v;
-    evaluateWithLibs libReader = evaluate lookup where
+    evaluateWithLibs :: (Show v,ValueRead v,Applicative m,Monad m) => v -> (String -> m (Maybe String)) -> String -> m v;
+    evaluateWithLibs stdlib libReader = evaluateSource lookup where
     {
         lookup "" = return stdlib;
         lookup libname = do
@@ -53,14 +73,14 @@ module Data.Argo.Read where
             mlibtext <- libReader libname;
             case mlibtext of
             {
-                Just libtext -> evaluateWithLibs libReader libtext;
+                Just libtext -> evaluateWithLibs stdlib libReader libtext;
                 Nothing -> fail ("not found: $" ++ (show libname));
             };
         };
     };
 
-    evaluate :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m v) -> String -> m v;
-    evaluate libLookup s = do
+    evaluateSource :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m v) -> String -> m v;
+    evaluateSource libLookup s = do
     {
         expr <- readText s;
         (Identity r) <- monoEvaluateExpression resolve expr;

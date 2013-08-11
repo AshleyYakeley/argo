@@ -6,7 +6,7 @@ module Main where
     main = do
     {
         s <- getContents;
-        r :: Value <- evaluateWithLibs (\_ -> return Nothing) s;
+        r :: Value <- evaluateWithLibs stdlib (\_ -> return Nothing) s;
         putStrLn (show r);
     };
 }

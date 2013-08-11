@@ -10,6 +10,7 @@ module TestUtil
     import Test.Framework;
     import Test.Framework.Providers.API;
     import Control.Applicative;
+    import Control.Exception;
     import Data.Typeable;
 
     data Result = Pass | Fail String deriving Typeable;
@@ -40,7 +41,7 @@ module TestUtil
     ioTest = Test;
 
     pureTest :: String -> Result -> Test;
-    pureTest name result = ioTest name (return result);
+    pureTest name result = ioTest name (catch (evaluate result) (\(ex :: SomeException) -> return (Fail (show ex))));
 
     diff :: (Show a,Eq a) => a -> a -> Result;
     diff expected found | expected == found = Pass;
