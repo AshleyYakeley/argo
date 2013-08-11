@@ -10,6 +10,8 @@ module Data.Argo.StdLib(stdlib) where
     lib :: String -> Value;
     lib "+" = toValue ((+) :: Rational -> Rational -> Rational);
     lib "-" = toValue ((-) :: Rational -> Rational -> Rational);
+    lib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
+    lib "return" = toValue (return :: Value -> IO Value);
     lib "fix" = toValue fixV;
     lib _ = toValue ();
 

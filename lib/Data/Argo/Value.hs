@@ -3,7 +3,7 @@ module Data.Argo.Value where
     import Import;
     import Data.Argo.Read;
     
-    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value);
+    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ActionValue (IO Value);
     
     instance SubValue Value Value where
     {
@@ -56,6 +56,13 @@ module Data.Argo.Value where
         fromValueMaybe (FunctionValue x) = Just (fromValue . x . toValue);
         fromValueMaybe _ = Nothing;
     };
+
+    instance (SubValue Value a) => SubValue Value (IO a) where
+    {
+        toValue x = ActionValue (fmap toValue x);
+        fromValueMaybe (ActionValue x) = Just (fmap fromValue x);
+        fromValueMaybe _ = Nothing;
+    };
     
     
     instance Show Value where
@@ -72,6 +79,7 @@ module Data.Argo.Value where
             showVals (a:as) = (show a) ++ "," ++ (showVals as);
         };
         show (FunctionValue _) = "{...}";
+        show (ActionValue _) = "<action>";
     };
     
     instance ValueRead Value where
