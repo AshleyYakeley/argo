@@ -32,6 +32,26 @@ module Data.Argo.Value where
         fromValueMaybe _ = Nothing;
     };
 
+    instance SubValue Value Integer where
+    {
+        toValue x = toValue (fromInteger x :: Rational);
+        fromValueMaybe v = do
+        {
+            r :: Rational <- fromValueMaybe v;
+            case denominator r of
+            {
+                1 -> return (numerator r);
+                _ -> Nothing;
+            };
+        };
+    };
+
+    instance SubValue Value Int where
+    {
+        toValue = toValue . toInteger;
+        fromValueMaybe v = fmap fromInteger (fromValueMaybe v :: Maybe Integer);
+    };
+
     instance SubValue Value String where
     {
         toValue = StringValue;
@@ -64,6 +84,20 @@ module Data.Argo.Value where
         fromValueMaybe _ = Nothing;
     };
     
+    instance (SubValue Value a, SubValue Value b) => SubValue Value (Either a b) where
+    {
+        toValue (Left a) = toValue a;
+        toValue (Right b) = toValue b;
+        fromValueMaybe v = case fromValueMaybe v of
+        {
+            Just a -> Just (Left a);
+            Nothing -> case fromValueMaybe v of
+            {
+                Just b -> Just (Right b);
+                Nothing -> Nothing;
+            };
+        };
+    };
     
     instance Show Value where
     {

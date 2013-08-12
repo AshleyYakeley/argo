@@ -110,7 +110,12 @@ module Main where
     [
         evalTest "$\"\" \"+\" 3 4" (return (NumberValue 7)),
         evalTest "$\"\" \"fix\"" (return (FunctionValue id)),
-        evalTest "$\"\" \"fix\" {fib:{0:0,1:1,n:$\"\" \"+\" (fib ($\"\" \"-\" n 1)) (fib ($\"\" \"-\" n 2))}} 11" (return (NumberValue 89))
+        evalTest "$\"\" \"fix\" {fib:{0:0,1:1,n:$\"\" \"+\" (fib ($\"\" \"-\" n 1)) (fib ($\"\" \"-\" n 2))}} 11" (return (NumberValue 89)),
+        
+        evalTest "$\"\" \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
+        evalTest "$\"\" \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
+        evalTest "$\"\" \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
+        evalTest "$\"\" \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7]))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

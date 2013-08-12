@@ -39,9 +39,6 @@ module Data.Argo.MonoExpression where
         MonoValueExpression sym val (Compose (Compose ((->) q) Maybe) f) r;
     monoPatternBind patExp valExp = fmap snd (matchBind patExp valExp);
 
-    expressionSymbols :: MonoValueExpression sym val f r -> [sym];
-    expressionSymbols (MkExpression symlist _) = listTypeToList (\(MkMonoSymbol sym) -> sym) symlist;
-
     monoEvaluateExpression :: (Applicative m,Functor f) => (sym -> m val) -> MonoValueExpression sym val f r -> m (f r);
     monoEvaluateExpression smv = evaluateExpression (\(MkMonoSymbol sym) -> smv sym);
 }

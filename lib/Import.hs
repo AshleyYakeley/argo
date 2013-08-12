@@ -1,7 +1,7 @@
 module Import(module Import) where
 {
     -- base
-    import Prelude as Import (Integer,undefined,error,fromIntegral,Num(..),IO);
+    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Num(..),IO);
     import Data.Function as Import;
     import Data.Functor as Import;
     import Data.Foldable as Import;
@@ -11,7 +11,7 @@ module Import(module Import) where
     import Data.Maybe as Import;
     import Data.Either as Import;
     import Data.Tuple as Import;
-    import Data.List as Import ((++),null,intercalate);
+    import Data.List as Import ((++),null,take,drop,intercalate);
     import Data.Char as Import;
     import Data.String as Import;
     import Control.Applicative as Import;

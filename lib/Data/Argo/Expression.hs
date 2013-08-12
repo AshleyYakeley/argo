@@ -74,19 +74,19 @@ module Data.Argo.Expression where
     };
     removeAllMatching wa (ConsListType wb rest) = case removeAllMatching wa rest of
     {
-        MkRemoveFromList wit ins rem -> case matchWitness wa wb of
+        MkRemoveFromList wit ins rm -> case matchWitness wa wb of
         {
             Just MkEqualType -> MkRemoveFromList
             {
                 listRemoveWitness = wit,
                 listInsert = \a l2 -> (a,ins a l2),
-                listRemove = \(_,l1) -> rem l1
+                listRemove = \(_,l1) -> rm l1
             };
             Nothing -> MkRemoveFromList
             {
                 listRemoveWitness = ConsListType wb wit,
                 listInsert = \a (b,l2) -> (b,ins a l2),
-                listRemove = \(b,l1) -> (b,rem l1)
+                listRemove = \(b,l1) -> (b,rm l1)
             };
         };
     };
@@ -107,13 +107,13 @@ module Data.Argo.Expression where
     };
     removeAllMatchingMany (ConsListType wa wlx) wl = case removeAllMatching wa wl of
     {
-        MkRemoveFromList wl' ins rem -> case removeAllMatchingMany wlx wl' of
+        MkRemoveFromList wl' ins rm -> case removeAllMatchingMany wlx wl' of
         {
             MkRemoveManyFromList wl'' insM remM -> MkRemoveManyFromList
             {
                 listRemoveManyWitness = wl'',
                 listInsertMany = \(a,lx) lr -> ins a (insM lx lr),
-                listRemoveMany = remM . rem
+                listRemoveMany = remM . rm
             };
         };
     };

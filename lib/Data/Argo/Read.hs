@@ -70,7 +70,7 @@ module Data.Argo.Read where
         };
     };
 
-    evaluateSource :: (Show v,ValueRead v,Applicative m,Monad m) => (String -> m v) -> String -> m v;
+    evaluateSource :: (ValueRead v,Applicative m,Monad m) => (String -> m v) -> String -> m v;
     evaluateSource libLookup s = do
     {
         expr <- readText s;
@@ -82,19 +82,15 @@ module Data.Argo.Read where
         resolve (LibReference libname) = libLookup libname;
     };
     
-    readText :: forall v m. (Show v,ValueRead v,Monad m) => String -> m (ArgoExpression v v);
+    readText :: forall v m. (ValueRead v,Monad m) => String -> m (ArgoExpression v v);
     readText input = case readP_to_S readExpressionToEnd input of
     {
         [(a,"")] -> return a;
         [(_,s)] -> fail ("parser: unrecognised: " ++ s);
         [] -> fail "parser: invalid";
-        ps@(_:_) -> fail ("parser: ambiguous: " ++ (intercalate "," (fmap (showExpr . fst) ps)));
+        _:_ -> fail "parser: ambiguous";
     } where
     {
-        showExpr :: ArgoExpression v v -> String;
-        showExpr (MkExpression NilListType (Identity nr)) = show (nr ());
-        showExpr exp = "(" ++ (intercalate "," (fmap show (expressionSymbols exp))) ++ ") -> value";
-    
         readp :: Read a => ReadP a;
         readp = readPrec_to_P readPrec minPrec;
 
