@@ -122,6 +122,19 @@ module Main where
         evalTest "$std \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
         evalTest "$std \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
         
+        evalTest "$std \"bytes\" \"AF 30 2b05\"" (return (ByteArrayValue [0xAF,0x30,0x2B,0x05])),
+        
+        evalTest "$std \"=\" null null" (return (BoolValue True)),
+        evalTest "$std \"=\" 1 1" (return (BoolValue True)),
+        evalTest "$std \"=\" 1 2" (return (BoolValue False)),
+        evalTest "$std \"=\" {} {}" (return (BoolValue False)),
+        evalTest "$std \"=\" [] []" (return (BoolValue True)),
+        evalTest "$std \"=\" [] {}" (return (BoolValue False)),
+        evalTest "$std \"=\" 2 {}" (return (BoolValue False)),
+        evalTest "$std \"=\" [{}] [{}]" (return (BoolValue False)),
+        evalTest "$std \"=\" [[]] [[]]" (return (BoolValue True)),
+        evalTest "$std \"=\" [4] [4]" (return (BoolValue True)),
+        
         evalTestWithLibs [("a","[4;$this]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4]))
     ] where
     {
