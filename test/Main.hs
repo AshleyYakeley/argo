@@ -7,11 +7,16 @@ module Main where
     showTest :: Value -> String -> Test;
     showTest v s = pureTest s (diff s (show v));
 
-    libFinder :: String -> FailM (Maybe String);
-    libFinder _ = return Nothing;
+    libFinder :: [(String,String)] -> String -> FailM (Maybe String);
+    libFinder ((name,text):_) name' | name == name' = return (Just text);
+    libFinder (_:rest) name' = libFinder rest name';
+    libFinder [] _ = return Nothing;
+
+    evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
+    evalTestWithLibs libs s mv = pureTest s (diff (show mv) (show (evaluateWithLibs stdLibValue (libFinder libs) s :: FailM Value)));
 
     evalTest :: String -> FailM Value -> Test;
-    evalTest s mv = pureTest s (diff (show mv) (show (evaluateWithLibs stdlib libFinder s :: FailM Value)));
+    evalTest = evalTestWithLibs [];
 
     tests :: [Test];
     tests = 
@@ -108,14 +113,16 @@ module Main where
         evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
     ] ++
     [
-        evalTest "$\"\" \"+\" 3 4" (return (NumberValue 7)),
-        evalTest "$\"\" \"fix\"" (return (FunctionValue id)),
-        evalTest "$\"\" \"fix\" {fib:{0:0,1:1,n:$\"\" \"+\" (fib ($\"\" \"-\" n 1)) (fib ($\"\" \"-\" n 2))}} 11" (return (NumberValue 89)),
+        evalTest "$std \"+\" 3 4" (return (NumberValue 7)),
+        evalTest "$std \"fix\"" (return (FunctionValue id)),
+        evalTest "$std \"fix\" {fib:{0:0,1:1,n:$std \"+\" (fib ($std \"-\" n 1)) (fib ($std \"-\" n 2))}} 11" (return (NumberValue 89)),
         
-        evalTest "$\"\" \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
-        evalTest "$\"\" \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
-        evalTest "$\"\" \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
-        evalTest "$\"\" \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7]))
+        evalTest "$std \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
+        evalTest "$std \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
+        evalTest "$std \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
+        evalTest "$std \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
+        
+        evalTestWithLibs [("a","[4;$this]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4]))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

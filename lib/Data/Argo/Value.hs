@@ -3,7 +3,7 @@ module Data.Argo.Value where
     import Import;
     import Data.Argo.Read;
     
-    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ActionValue (IO Value);
+    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue [Word8] | ActionValue (IO Value);
     
     instance SubValue Value Value where
     {
@@ -16,6 +16,14 @@ module Data.Argo.Value where
         toValue () = NullValue;
         fromValueMaybe NullValue = Just ();
         fromValueMaybe _ = Nothing;
+    };
+    
+    instance (SubValue Value a) => SubValue Value (Maybe a) where
+    {
+        toValue Nothing = NullValue;
+        toValue (Just a) = toValue a;
+        fromValueMaybe NullValue = Just Nothing;
+        fromValueMaybe v = fmap Just (fromValueMaybe v);
     };
 
     instance SubValue Value Bool where
@@ -56,6 +64,13 @@ module Data.Argo.Value where
     {
         toValue = StringValue;
         fromValueMaybe (StringValue x) = Just x;
+        fromValueMaybe _ = Nothing;
+    };
+
+    instance SubValue Value [Word8] where
+    {
+        toValue = ByteArrayValue;
+        fromValueMaybe (ByteArrayValue x) = Just x;
         fromValueMaybe _ = Nothing;
     };
 
@@ -106,6 +121,15 @@ module Data.Argo.Value where
         show (BoolValue False) = "false";
         show (NumberValue n) = show n;
         show (StringValue s) = show s;
+        show (ByteArrayValue bb) = "bytes \"" ++ (concat (fmap hexByte bb)) ++ "\"" where
+        {
+            hexByte :: Word8 -> String;
+            hexByte b = [hexChar (div b 16),hexChar (mod b 16)];
+            
+            hexChar :: Word8 -> Char;
+            hexChar b | b < 10 = toEnum ((fromEnum '0') + (fromEnum b));
+            hexChar b = toEnum ((fromEnum 'A') + (fromEnum b) - 10);
+        };
         show (ArrayValue vs) = "[" ++ showVals vs ++ "]" where
         {
             showVals [] = "";
@@ -122,8 +146,9 @@ module Data.Argo.Value where
         valueTypeName (BoolValue _) = "boolean";
         valueTypeName (NumberValue _) = "number";
         valueTypeName (StringValue _) = "string";
+        valueTypeName (ByteArrayValue _) = "bytes";
         valueTypeName (ArrayValue _) = "array";
         valueTypeName (FunctionValue _) = "function";
-        valueTypeName (ActionValue _) = "function";
+        valueTypeName (ActionValue _) = "action";
     };
 }

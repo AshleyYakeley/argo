@@ -1,7 +1,7 @@
 module Import(module Import) where
 {
     -- base
-    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Num(..),IO);
+    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO);
     import Data.Function as Import;
     import Data.Functor as Import;
     import Data.Foldable as Import;
@@ -12,10 +12,12 @@ module Import(module Import) where
     import Data.Either as Import;
     import Data.Tuple as Import;
     import Data.List as Import ((++),null,take,drop,intercalate);
+    import Data.Word as Import;
     import Data.Char as Import;
     import Data.String as Import;
     import Control.Applicative as Import;
     import Control.Monad as Import (Monad(..),MonadPlus(..));
+    import Control.Monad.Fix as Import;
     import Data.Ratio as Import;
     import Text.Show as Import (Show(..));
     import Text.Read as Import (Read(..),readListPrecDefault,readPrec_to_P,readP_to_Prec,readMaybe);

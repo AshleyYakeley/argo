@@ -1,4 +1,4 @@
-module Data.Argo.StdLib(stdlib) where
+module Data.Argo.StdLib(stdLib,stdLibValue) where
 {
     import Import;
     import Data.Argo.Read;
@@ -22,20 +22,20 @@ module Data.Argo.StdLib(stdlib) where
     dropV i (Left arr) = Left (drop i arr);
     dropV i (Right s) = Right (drop i s);
 
-    lib :: String -> Value;
-    lib "default" = toValue defaultV;
-    lib "default-function" = toValue defaultFunction;
-    lib "+" = toValue ((+) :: Rational -> Rational -> Rational);
-    lib "-" = toValue ((-) :: Rational -> Rational -> Rational);
+    stdLib :: String -> Value;
+    stdLib "default" = toValue defaultV;
+    stdLib "default-function" = toValue defaultFunction;
+    stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
+    stdLib "-" = toValue ((-) :: Rational -> Rational -> Rational);
 
-    lib "take" = toValue takeV;
-    lib "drop" = toValue dropV;
+    stdLib "take" = toValue takeV;
+    stdLib "drop" = toValue dropV;
 
-    lib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
-    lib "return" = toValue (return :: Value -> IO Value);
-    lib "fix" = toValue fixV;
-    lib _ = toValue ();
+    stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
+    stdLib "return" = toValue (return :: Value -> IO Value);
+    stdLib "fix" = toValue fixV;
+    stdLib _ = toValue ();
 
-    stdlib :: Value;
-    stdlib = toValue lib;
+    stdLibValue :: Value;
+    stdLibValue = toValue stdLib;
 }

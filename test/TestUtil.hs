@@ -11,6 +11,7 @@ module TestUtil
     import Test.Framework.Providers.API;
     import Control.Applicative;
     import Control.Exception;
+    import Control.Monad.Fix;
     import Data.Typeable;
 
     data Result = Pass | Fail String deriving Typeable;
@@ -69,6 +70,19 @@ module TestUtil
         (Success a) >>= f = f a;
         (Error err) >>= _ = Error err;
         fail = Error;
+    };
+    
+    instance MonadFix FailM where
+    {
+        mfix (ama) = let
+        {
+            ma = ama a;
+            a = case ma of
+            {
+                Success a' -> a';
+                Error s -> error s;
+            };
+        } in ma;
     };
     
     instance (Show a) => Show (FailM a) where
