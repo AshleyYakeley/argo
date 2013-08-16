@@ -74,6 +74,13 @@ module Data.Argo.Value where
         fromValueMaybe _ = Nothing;
     };
 
+    instance SubValue Value [String] where
+    {
+        toValue x = ArrayValue (fmap toValue x);
+        fromValueMaybe (ArrayValue x) = Just (fmap fromValue x);
+        fromValueMaybe _ = Nothing;
+    };
+
     instance ({-SubValue Value a-}) => SubValue Value [Value] where
     {
         toValue x = ArrayValue (fmap toValue x);

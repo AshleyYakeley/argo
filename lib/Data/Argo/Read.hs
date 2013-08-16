@@ -53,6 +53,13 @@ module Data.Argo.Read where
         valueTypeName :: v -> String;
     };
 
+    applyValue :: (SubValue v (v -> v)) => v -> v -> v;
+    applyValue f a = case fromValueMaybe f of
+    {
+        Just ff -> ff a;
+        Nothing -> error "non-function application";
+    };
+
     -- The recursive library lookup magic happens here.
     evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m) => v -> (String -> m (Maybe String)) -> String -> m v;
     evaluateWithLibs stdlib libReader source = mdo
@@ -445,11 +452,7 @@ module Data.Argo.Read where
         } where
         {
             applyArgs expf [] = expf;
-            applyArgs expf (expa:args) = applyArgs (liftA2 (\f a -> case fromValueMaybe f of
-            {
-                Just ff -> ff a;
-                Nothing -> error "non-function application";
-            }) expf expa) args;
+            applyArgs expf (expa:args) = applyArgs (liftA2 applyValue expf expa) args;
         };
         
         readExpressionToEnd :: ReadP (ArgoExpression v v);

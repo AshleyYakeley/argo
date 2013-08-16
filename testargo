@@ -1,0 +1,2 @@
+#! dist/build/argo/argo
+{_:$std "return" null}
