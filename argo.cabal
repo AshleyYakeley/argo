@@ -25,7 +25,8 @@ library
     build-depends:
         base == 4.6.*,
         transformers >= 0.3,
-        witness == 0.2.*
+        witness == 0.2.*,
+        utf8-string >= 0.3.7
     extensions:         
         NoImplicitPrelude 
         ScopedTypeVariables 

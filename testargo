@@ -1,2 +1,2 @@
 #! dist/build/argo/argo
-{_:$std "return" null}
+{_:$std "stdout" "Hello World!\n"}

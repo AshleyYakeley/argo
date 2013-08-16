@@ -4,6 +4,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Data.Argo.Read;
     import Data.Argo.Value;
     --import System.Process;
+    import System.IO.UTF8;
+    import System.IO hiding (hPutStr);
 
     fixV :: (Value -> Value) -> Value;
     fixV f = f (fixV f);
@@ -75,6 +77,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     process :: Int -> 
 -}
+    stdoutV :: String -> IO ();
+    stdoutV = hPutStr stdout;
+
     eq :: Value -> Value -> Bool;
     eq NullValue NullValue = True;
     eq (BoolValue a) (BoolValue b) = a == b;
@@ -102,6 +107,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "bytes" = toValue bytes;
 
 --    stdLib "file" = toValue file;
+
+    stdLib "stdout" = toValue stdoutV;
 
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
