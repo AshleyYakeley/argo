@@ -135,7 +135,16 @@ module Main where
         evalTest "$std \"=\" [[]] [[]]" (return (BoolValue True)),
         evalTest "$std \"=\" [4] [4]" (return (BoolValue True)),
         
-        evalTestWithLibs [("a","[4;$this]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4]))
+        -- lib loading
+        evalTestWithLibs [("a","[2]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
+        evalTestWithLibs [("a","[2;$\"b\"]"),("b","[3]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
+        evalTestWithLibs [("b","[3]"),("a","[2;$\"b\"]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
+
+        -- recursive library reference
+        evalTestWithLibs [("a","[4;$this]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
+        evalTestWithLibs [("a","[4;$\"a\"]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
+        evalTestWithLibs [("a","[5;$\"b\"]"),("b","[7;$\"a\"]")] "$std \"take\" 4 $\"a\""
+            (return (ArrayValue [NumberValue 5,NumberValue 7,NumberValue 5,NumberValue 7]))
     ] where
     {
         patternTest :: String -> String -> Bool -> Test;

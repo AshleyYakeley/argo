@@ -3,6 +3,7 @@ module Data.Argo.Read where
     import Import;
     import Data.Argo.Expression;
     import Data.Argo.MonoExpression;
+    import qualified Control.Monad.Trans.State;
     
     data Reference = ThisReference | StdReference | LibReference String | SymbolReference String deriving (Eq);
    
@@ -52,17 +53,41 @@ module Data.Argo.Read where
         valueTypeName :: v -> String;
     };
 
-    evaluateWithLibs :: (Show v,ValueRead v,Applicative m,MonadFix m) => v -> (String -> m (Maybe String)) -> String -> m v;
-    evaluateWithLibs stdlib libReader = evaluateSource stdlib lookup where
+    -- The recursive library lookup magic happens here.
+    evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m) => v -> (String -> m (Maybe String)) -> String -> m v;
+    evaluateWithLibs stdlib libReader source = mdo
     {
-        lookup libname = do
+        ~(v,dict) <- runStateT (evaluateSource stdlib (lookup dict) source) (\_ -> Nothing);
+        return v;
+    } where
+    {
+        lookup :: (String -> Maybe v) -> String -> StateT (String -> Maybe v) m v;
+        lookup dict libname = do
         {
-            mlibtext <- libReader libname;
-            case mlibtext of
+            curdict <- Control.Monad.Trans.State.get;
+            case curdict libname of
             {
-                Just libtext -> evaluateWithLibs stdlib libReader libtext;
-                Nothing -> fail ("not found: $" ++ (show libname));
+                Just _ -> return ();
+                Nothing -> do
+                {
+                    mlibtext <- lift (libReader libname);
+                    case mlibtext of
+                    {
+                        Just libtext -> mdo
+                        {
+                            put (\libname' -> if libname == libname' then Just r else curdict libname');
+                            r <- evaluateSource stdlib (lookup dict) libtext;
+                            return ();
+                        };
+                        Nothing -> fail ("not found: $" ++ (show libname));
+                    };
+                };
             };
+            return (case dict libname of
+            {
+                Just r' -> r';
+                Nothing -> error ("shouldn't happen: lookup of $" ++ (show libname) ++ " failed");
+            });
         };
     };
 
@@ -76,7 +101,7 @@ module Data.Argo.Read where
     } in do
     {
         expr <- readText s;
-        (Identity r) <- monoEvaluateExpression resolve expr;
+        Identity r <- monoEvaluateExpression resolve expr;
         return r;
     });
     

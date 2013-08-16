@@ -38,6 +38,7 @@ library
         TypeFamilies
         MultiParamTypeClasses
         ConstraintKinds
+        RecursiveDo
     ghc-options: -Wall
 
 executable argo

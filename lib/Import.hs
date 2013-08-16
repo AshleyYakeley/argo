@@ -27,6 +27,8 @@ module Import(module Import) where
     -- transformers
     import Data.Functor.Identity as Import;
     import Data.Functor.Compose as Import;
+    import Control.Monad.Trans.Class as Import;
+    import Control.Monad.Trans.State as Import hiding (get);
     
     -- witness
     import Data.Witness.EqualType as Import;
