@@ -72,6 +72,7 @@ module Main where
         evalTest "{ab:ab}" (return (FunctionValue id)),
         evalTest "{ab:a}" (fail "undefined: a"),
         evalTest "{1:1,2:2}" (return (FunctionValue id)),
+        evalTest "{1}" (return (FunctionValue id)),
 
         -- function application
 --        evalTest "null 45" (fail "non-function application"),
@@ -81,6 +82,14 @@ module Main where
         evalTest "{a:12} 45" (return (NumberValue 12)),
         evalTest "{a:{b:a}} 27 31" (return (NumberValue 27)),
         evalTest "{a:{b:b}} 27 31" (return (NumberValue 31)),
+        evalTest "{37} 45" (return NullValue),
+        evalTest "{37} null" (return (NumberValue 37)),
+        evalTest "{37,true:54} null" (return (NumberValue 37)),
+        evalTest "{37,true:54} true" (return (NumberValue 54)),
+        evalTest "{37,true:54} false" (return NullValue),
+        evalTest "{37,true:54,} null" (return (NumberValue 37)),
+        evalTest "{37,true:54,} true" (return (NumberValue 54)),
+        evalTest "{37,true:54,} false" (return NullValue),
         
         -- comments
         evalTest "#\n34" (return (NumberValue 34)),
@@ -105,6 +114,7 @@ module Main where
         patternTests "{1:2}" ["{1:2}","{1:2,1:4}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:null}","{2:2}"],
         patternTests "{1:2,3:4}" ["{1:2,3:4}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:4}","{1:null}","{2:2}"],
         patternTests "{1:_number}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
+        patternTests "{_number}" ["{null:2}","{null:3}","{null:4}","{2}","{3}","{4}"] ["{1:2}","{1:3}","{1:4}","null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
         patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]
     ] ++

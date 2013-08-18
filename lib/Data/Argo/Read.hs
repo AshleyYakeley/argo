@@ -256,6 +256,7 @@ module Data.Argo.Read where
         {
             readWSAndChar '[';
             pats <- readIntercalate (readWSAndChar ',') readPattern;
+            _ <- optional (readWSAndChar ',');
             mextra <- optional (do
             {
                 readWSAndChar ';';
@@ -286,6 +287,7 @@ module Data.Argo.Read where
         {
             readWSAndChar '{';
             fields <- readIntercalate (readWSAndChar ',') readPatternField;
+            _ <- optional (readWSAndChar ',');
             readWSAndChar '}';
             return ( (matchAll fields));
         } where
@@ -293,11 +295,15 @@ module Data.Argo.Read where
             readPatternField :: ReadP (ArgoPatternExpression v (v -> v));
             readPatternField = do
             {
-                -- arg <- readExpression;
-                arg <- readConstExpression;
-                readWSAndChar ':';
+                marg <- optional (do
+                {
+                    -- arg <- readExpression;
+                    arg <- readConstExpression;
+                    readWSAndChar ':';
+                    return arg;
+                });
                 pat <- readPattern;
-                return (subPattern (\f -> Just (f arg)) pat);
+                return (subPattern (\f -> Just (f (fromMaybe (toValue ()) marg))) pat);
             };
         };
 
@@ -340,12 +346,12 @@ module Data.Argo.Read where
             return (matchAll (pat1:patr));
         };
 
-
         readFunction :: ReadP (ArgoExpression v (v -> v));
         readFunction = do
         {
             readWSAndChar '{';
             fields <- readIntercalate (readWSAndChar ',') readField;
+            _ <- optional (readWSAndChar ',');
             readWSAndChar '}';
             return (assembleFunction fields);
         } where
@@ -353,10 +359,14 @@ module Data.Argo.Read where
             readField :: ReadP (ArgoPatternExpression v v,ArgoExpression v v);
             readField = do
             {
-                pat <- readPattern;
-                readWSAndChar ':';
+                mpat <- optional (do
+                {
+                    pat <- readPattern;
+                    readWSAndChar ':';
+                    return pat;
+                });
                 result <- readExpression;
-                return (pat,result);
+                return (fromMaybe (patternMatch (isValue ())) mpat,result);
             };
 
             argoBind :: ArgoPatternExpression v v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);
@@ -377,6 +387,7 @@ module Data.Argo.Read where
         {
             readWSAndChar '[';
             exps <- readIntercalate (readWSAndChar ',') readExpression;
+            _ <- optional (readWSAndChar ',');
             mextra <- optional (do
             {
                 readWSAndChar ';';
