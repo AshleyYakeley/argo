@@ -1,6 +1,7 @@
 module Data.Argo.Value where
 {
     import Import;
+    import Data.Argo.SubValue;
     import Data.Argo.Read;
     
     data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue [Word8] | ActionValue (IO Value);

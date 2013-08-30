@@ -3,6 +3,7 @@ module Data.Argo.Read where
     import Import;
     import Data.Argo.Expression;
     import Data.Argo.MonoExpression;
+    import Data.Argo.SubValue;
     import qualified Control.Monad.Trans.State;
     
     data Reference = ThisReference | StdReference | LibReference String | SymbolReference String deriving (Eq);
@@ -18,28 +19,6 @@ module Data.Argo.Read where
     type ArgoExpression v = MonoValueExpression Reference v Identity;
     type ArgoPatternExpression v q = MonoPatternExpression String v q ();
     
-    class SubValue value t where
-    {
-        toValue :: t -> value;
-        fromValueMaybe :: value -> Maybe t;
-    };
-
-    data ValueType v t = MkValueType
-    {
-        valueTypeName' :: String,
-        readValueType :: ReadP (ArgoExpression v t)
-    };
-
-    isValue :: (Eq t,SubValue value t) => t -> value -> Bool;
-    isValue t v = fromValueMaybe v == Just t;
-
-    fromValue :: (SubValue value t) => value -> t;
-    fromValue v = case fromValueMaybe v of
-    {
-        Just t -> t;
-        Nothing -> error "wrong type";
-    };
-    
     class
     (
         SubValue v (),
@@ -51,13 +30,6 @@ module Data.Argo.Read where
     ) => ValueRead v where
     {
         valueTypeName :: v -> String;
-    };
-
-    applyValue :: (SubValue v (v -> v)) => v -> v -> v;
-    applyValue f a = case fromValueMaybe f of
-    {
-        Just ff -> ff a;
-        Nothing -> error "non-function application";
     };
 
     -- The recursive library lookup magic happens here.

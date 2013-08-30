@@ -17,8 +17,9 @@ library
         Data.Argo
         Data.Argo.Expression
         Data.Argo.MonoExpression
-        Data.Argo.Value
+        Data.Argo.SubValue
         Data.Argo.Read
+        Data.Argo.Value
         Data.Argo.StdLib
     other-modules:      
         Import

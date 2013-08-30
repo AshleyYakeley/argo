@@ -1,7 +1,7 @@
 module Data.Argo.StdLib(stdLib,stdLibValue) where
 {
     import Import;
-    import Data.Argo.Read;
+    import Data.Argo.SubValue;
     import Data.Argo.Value;
     --import System.Process;
     import System.IO.UTF8;
