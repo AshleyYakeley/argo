@@ -42,6 +42,30 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
         digitStreamToBytes (a:b:rest) = ((a * 16) + b):(digitStreamToBytes rest);
     };
     
+    subst :: String -> String -> String -> (String -> String) -> String;
+    subst pre post template dict = case searchList pre template of
+    {
+        Just (a,aa) -> case searchList post aa of
+        {
+            Just (b,c) -> a ++ (dict b) ++ (subst pre post c dict);
+            Nothing -> template;
+        };
+        Nothing -> template;
+    }
+    where
+    {
+        -- searchList s (a ++ s ++ b) = Just (a,b) where s is first occurrence
+        searchList :: (Eq a) => [a] -> [a] -> Maybe ([a],[a]);
+        searchList [] text = Just ([],text);
+        searchList _ [] = Nothing;
+        searchList (s:ss) (t:tt) | s == t = searchList ss tt;
+        searchList sc (t:tt) = do
+        {
+            (a,b) <- searchList sc tt;
+            return (t:a,b);
+        };
+    };
+    
      
 {-
     source :: 
@@ -103,6 +127,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     stdLib "take" = toValue takeV;
     stdLib "drop" = toValue dropV;
+    stdLib "subst" = toValue subst;
 
     stdLib "bytes" = toValue bytes;
 
