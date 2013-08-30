@@ -6,6 +6,9 @@ module Data.Argo.Value where
     
     data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue [Word8] | ActionValue (IO Value);
     
+    castValue :: (ToValue Value a,FromValue Value b) => a -> b;
+    castValue a = fromValue (toValue a :: Value);
+    
     instance ToValue Value Value where
     {
         toValue = id;
