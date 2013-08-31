@@ -27,8 +27,8 @@ module Main where
             Nothing -> getContents;
             Just filePath -> readFile filePath;
         };
-        r :: Value <- evaluateWithDirs dirs s;
-        _ :: Value <- fromValue (applyValue r (toValue appArgs));
+        r <- evaluateWithDirs dirs s;
+        _ :: Value <- r appArgs;
         return ();
     };
 }

@@ -23,6 +23,13 @@ module Data.Argo.SubValue where
         Just t -> t;
         Nothing -> error "wrong type";
     };
+
+    fromValueM :: (Monad m,FromValue value t) => value -> m t;
+    fromValueM v = case fromValueMaybe v of
+    {
+        Just t -> return t;
+        Nothing -> fail "wrong type";
+    };
     
     applyValue :: (FromValue v (v -> v)) => v -> v -> v;
     applyValue f a = case fromValueMaybe f of

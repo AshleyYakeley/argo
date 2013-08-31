@@ -10,8 +10,12 @@ module Data.Argo(module Data.Argo) where
     import System.FilePath;
     import System.Directory;
 
-    evaluateWithStdLib :: forall m. (Applicative m, MonadFix m) => (String -> m (Maybe String)) -> String -> m Value;
-    evaluateWithStdLib = evaluateWithLibs stdLibValue;
+    evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue Value a) => (String -> m (Maybe String)) -> String -> m a;
+    evaluateWithStdLib libReader source = do
+    {
+        val :: Value <- evaluateWithLibs stdLibValue libReader source;
+        fromValueM val;
+    };
 
     readFileIfExists :: FilePath -> IO (Maybe String);
     readFileIfExists path = do
@@ -36,6 +40,6 @@ module Data.Argo(module Data.Argo) where
         };
     };
 
-    evaluateWithDirs :: [FilePath] -> String -> IO Value;
+    evaluateWithDirs :: (FromValue Value a) => [FilePath] -> String -> IO a;
     evaluateWithDirs dirs = evaluateWithStdLib (lookupArgoFileInDirs dirs);
 }
