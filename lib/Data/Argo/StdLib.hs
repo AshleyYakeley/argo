@@ -3,6 +3,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Import;
     import Data.Argo.SubValue;
     import Data.Argo.Value;
+    import Data.Argo.StdLib.Action;
     --import System.Process;
     import System.IO.UTF8;
     import System.IO hiding (hPutStr);
@@ -137,6 +138,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
+    stdLib "action" = toValue action;
     stdLib "fix" = toValue fixV;
     stdLib _ = toValue ();
 

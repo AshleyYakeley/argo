@@ -23,6 +23,7 @@ library
         Data.Argo.StdLib
     other-modules:      
         Import
+        Data.Argo.StdLib.Action
     build-depends:
         base == 4.6.*,
         transformers >= 0.3,
