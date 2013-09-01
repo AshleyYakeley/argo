@@ -158,11 +158,14 @@ module Data.Argo.Value where
 
     instance (FromValue Value a,ToValue Value b) => ToValue Value (a -> b) where
     {
+        toValue ab = FunctionValue (toValue . ab . fromValue);
+{-
         toValue ab = FunctionValue (\v -> case fromValueMaybe v of
         {
             Just a -> toValue (ab a);
             Nothing -> toValue ();
         });
+-}
     };
     
     instance (ToValue Value a,FromValue Value b) => FromValue Value (a -> b) where
