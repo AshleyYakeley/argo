@@ -16,7 +16,7 @@ module Data.Argo.StdLib.Process(startProcess,runProcess) where
         toValue (ExitFailure code) = toValue code;
     };
 
-    processStatus :: ProcessStatus -> Maybe String -> Value;
+    processStatus :: (?context :: String) => ProcessStatus -> Maybe String -> Value;
     processStatus (Exited _) Nothing = toValue "exited";
     processStatus (Exited code) (Just "error") = toValue code;
     processStatus (Terminated _) Nothing = toValue "terminated";
@@ -30,18 +30,18 @@ module Data.Argo.StdLib.Process(startProcess,runProcess) where
         toValue ps = toValue (processStatus ps);
     };
 
-    waitProcess :: ProcessID -> IO ProcessStatus;
+    waitProcess :: (?context :: String) => ProcessID -> IO ProcessStatus;
     waitProcess pid = do
     {
         mps <- getProcessStatus True False pid;
         case mps of
         {
             Just ps -> return ps;
-            Nothing -> fail "process still running after wait";
+            Nothing -> failC "process still running after wait";
         };
     };
 
-    processID :: ProcessID -> String -> Value;
+    processID :: (?context :: String) => ProcessID -> String -> Value;
     processID (CPid pid) "id" = toValue pid;
     processID pid "check" = toValue (getProcessStatus False True pid);
     processID pid "wait" = toValue (waitProcess pid);

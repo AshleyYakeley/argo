@@ -141,7 +141,7 @@ module Data.Argo.Value where
     
     instance FromValue Value [String] where
     {
-        fromValueMaybe (ArrayValue x) = let {?context = "<unknown>"} in Just (fmap fromValue x);
+        fromValueMaybe (ArrayValue x) = Just (fmap fromValue x);
         fromValueMaybe _ = Nothing;
     };
 
@@ -152,7 +152,7 @@ module Data.Argo.Value where
     
     instance ({-FromValue Value a-}) => FromValue Value [Value] where
     {
-        fromValueMaybe (ArrayValue x) = let {?context = "<unknown>"} in Just (fmap fromValue x);
+        fromValueMaybe (ArrayValue x) = Just (fmap fromValue x);
         fromValueMaybe _ = Nothing;
     };
 
@@ -167,7 +167,7 @@ module Data.Argo.Value where
     
     instance (ToValue Value a,FromValue Value b) => FromValue Value (a -> b) where
     {
-        fromValueMaybe (FunctionValue x) = let {?context = "<unknown>"} in Just (fromValue . x . toValue);
+        fromValueMaybe (FunctionValue x) = Just (fromValue . x . toValue);
         fromValueMaybe _ = Nothing;
     };
 
@@ -178,7 +178,7 @@ module Data.Argo.Value where
     
     instance (FromValue Value a) => FromValue Value (IO a) where
     {
-        fromValueMaybe (ActionValue x) = let {?context = "<unknown>"} in Just (fmap fromValue x);
+        fromValueMaybe (ActionValue x) = Just (fmap fromValue x);
         fromValueMaybe _ = Nothing;
     };
     

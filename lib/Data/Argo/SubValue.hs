@@ -10,17 +10,17 @@ module Data.Argo.SubValue where
     
     class ToValue value t where
     {
-        toValue :: t -> value;
+        toValue :: (?context :: String) => t -> value;
     };
     
     class FromValue value t where
     {
-        fromValueMaybe :: value -> Maybe t;
+        fromValueMaybe :: (?context :: String) => value -> Maybe t;
     };
     
     type SubValue value t = (FromValue value t,ToValue value t);
 
-    isValue :: (Eq t,FromValue value t) => t -> value -> Bool;
+    isValue :: (Eq t,FromValue value t,?context :: String) => t -> value -> Bool;
     isValue t v = fromValueMaybe v == Just t;
 
     fromValue :: (FromValue value t,?context :: String) => value -> t;
