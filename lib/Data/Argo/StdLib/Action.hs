@@ -8,7 +8,7 @@ module Data.Argo.StdLib.Action(action) where
     
     instance FromValue Value [Actionable] where
     {
-        fromValueMaybe (ArrayValue x) = Just (fmap fromValue x);
+        fromValueMaybe (ArrayValue x) = let {?context = "<unknown>"} in Just (fmap fromValue x);
         fromValueMaybe _ = Nothing;
     };
     

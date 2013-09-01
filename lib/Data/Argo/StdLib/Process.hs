@@ -55,7 +55,7 @@ module Data.Argo.StdLib.Process(startProcess,runProcess) where
         toValue pid = toValue (processID pid);
     };
 
-    startProcess :: (Maybe String -> Value) -> IO ProcessID;
+    startProcess :: (?context :: String) => (Maybe String -> Value) -> IO ProcessID;
     startProcess fargs = let
     {
         cmdpath = fromValue (fargs Nothing);
@@ -73,7 +73,7 @@ module Data.Argo.StdLib.Process(startProcess,runProcess) where
         });
     };
     
-    runProcess :: (Maybe String -> Value) -> IO ProcessStatus;
+    runProcess :: (?context :: String) => (Maybe String -> Value) -> IO ProcessStatus;
     runProcess fargs = do
     {
         pid <- startProcess fargs;
