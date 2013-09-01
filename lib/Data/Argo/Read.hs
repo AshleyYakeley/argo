@@ -33,15 +33,15 @@ module Data.Argo.Read where
     };
 
     -- The recursive library lookup magic happens here.
-    evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m) => v -> (String -> m (Maybe String)) -> String -> m v;
+    evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m,?context::String) => v -> (String -> m (Maybe String)) -> String -> m v;
     evaluateWithLibs stdlib libReader source = mdo
     {
-        ~(v,dict) <- runStateT (evaluateSource stdlib (lookup dict) source) (\_ -> Nothing);
+        (v,dict) <- runStateT (evaluateSource stdlib (lookup dict) source) (\_ -> Nothing);
         return v;
     } where
     {
-        lookup :: (String -> Maybe v) -> String -> StateT (String -> Maybe v) m v;
-        lookup dict libname = do
+        lookup :: (?context::String) => (String -> Maybe v) -> String -> StateT (String -> Maybe v) m v;
+        lookup dict libname = let {?context = ?context ++ ": $" ++ (show libname)} in do
         {
             curdict <- Control.Monad.Trans.State.get;
             case curdict libname of
@@ -58,22 +58,22 @@ module Data.Argo.Read where
                             r <- evaluateSource stdlib (lookup dict) libtext;
                             return ();
                         };
-                        Nothing -> fail ("not found: $" ++ (show libname));
+                        Nothing -> failC "not found";
                     };
                 };
             };
             return (case dict libname of
             {
                 Just r' -> r';
-                Nothing -> error ("shouldn't happen: lookup of $" ++ (show libname) ++ " failed");
+                Nothing -> errorC "shouldn't happen: lookup failed";
             });
         };
     };
 
-    evaluateSource :: (ValueRead v,Applicative m,MonadFix m) => v -> (String -> m v) -> String -> m v;
+    evaluateSource :: (ValueRead v,Applicative m,MonadFix m,?context::String) => v -> (String -> m v) -> String -> m v;
     evaluateSource stdlib libLookup s = mfix (\this -> let
     {
-        resolve (SymbolReference sym) = fail ("undefined: " ++ sym);
+        resolve (SymbolReference sym) = failC ("undefined: " ++ sym);
         resolve (LibReference libname) = libLookup libname;
         resolve ThisReference = return this;
         resolve StdReference = return stdlib;
@@ -84,14 +84,19 @@ module Data.Argo.Read where
         return r;
     });
     
-    readText :: forall v m. (ValueRead v,Monad m) => String -> m (ArgoExpression v v);
-    readText input = case readP_to_S readExpressionToEnd input of
+    readText :: forall v m. (ValueRead v,Monad m,?context::String) => String -> m (ArgoExpression v v);
+    readText input = let
     {
-        [(a,"")] -> return a;
-        [(_,s)] -> fail ("parser: unrecognised: " ++ s);
-        [] -> fail "parser: invalid";
-        _:_ -> fail "parser: ambiguous";
-    } where
+        parseResult = readP_to_S readExpressionToEnd input;
+        result = let
+        {?context = ?context ++ ": parser"} in case parseResult of
+        {
+            [(a,"")] -> return a;
+            [(_,s)] -> failC ("unrecognised: " ++ s);
+            [] -> failC "invalid";
+            _:_ -> failC "ambiguous";
+        };
+    } in result where
     {
         readp :: Read a => ReadP a;
         readp = readPrec_to_P readPrec minPrec;
@@ -376,7 +381,7 @@ module Data.Argo.Read where
                 Just extra -> liftA2 (\m me -> case fromValueMaybe me of
                 {
                     Just e -> m ++ e;
-                    Nothing -> error "non-array after semicolon";
+                    Nothing -> errorC "non-array after semicolon";
                 }) main extra;
                 Nothing -> main;
             });

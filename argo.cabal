@@ -47,6 +47,7 @@ library
         MultiParamTypeClasses
         ConstraintKinds
         RecursiveDo
+        ImplicitParams
     ghc-options: -Wall
 
 executable argo
@@ -68,6 +69,7 @@ executable argo
         TypeFamilies
         MultiParamTypeClasses
         ConstraintKinds
+        ImplicitParams
     ghc-options: -Wall
 
 test-suite tests
@@ -84,6 +86,7 @@ test-suite tests
         TypeFamilies
         MultiParamTypeClasses
         ConstraintKinds
+        ImplicitParams
     ghc-options: -Wall
     build-depends: 
         base == 4.6.*,

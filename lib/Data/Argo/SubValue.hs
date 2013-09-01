@@ -2,6 +2,12 @@ module Data.Argo.SubValue where
 {
     import Import;
     
+    failC :: (Monad m,?context :: String) => String -> m a;
+    failC s = fail (?context ++ ": " ++ s);
+    
+    errorC :: (?context :: String) => String -> a;
+    errorC s = error (?context ++ ": " ++ s);
+    
     class ToValue value t where
     {
         toValue :: t -> value;

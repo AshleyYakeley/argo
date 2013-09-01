@@ -13,7 +13,8 @@ module Main where
     libFinder [] _ = return Nothing;
 
     evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
-    evalTestWithLibs libs s mv = pureTest s (diff (show mv) (show (evaluateWithLibs stdLibValue (libFinder libs) s :: FailM Value)));
+    evalTestWithLibs libs s mv = let {?context = "test"} in
+     pureTest s (diff (show mv) (show (evaluateWithLibs stdLibValue (libFinder libs) s :: FailM Value)));
 
     evalTest :: String -> FailM Value -> Test;
     evalTest = evalTestWithLibs [];
@@ -70,7 +71,7 @@ module Main where
         evalTest "{_:true,_:false}" (return (FunctionValue id)),
         evalTest "{a:a}" (return (FunctionValue id)),
         evalTest "{ab:ab}" (return (FunctionValue id)),
-        evalTest "{ab:a}" (fail "undefined: a"),
+        evalTest "{ab:a}" (fail "test: undefined: a"),
         evalTest "{1:1,2:2}" (return (FunctionValue id)),
         evalTest "{1}" (return (FunctionValue id)),
 

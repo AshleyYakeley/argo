@@ -85,7 +85,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     eqArray (a:aa) (b:bb) | eq a b = eqArray aa bb;
     eqArray _ _ = False;
 
-    stdLib :: String -> Value;
+    stdLib :: (?context :: String) => String -> Value;
     stdLib "default" = toValue defaultV;
     stdLib "default-function" = toValue defaultFunction;
     stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
@@ -111,6 +111,6 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "fix" = toValue fixV;
     stdLib _ = toValue ();
 
-    stdLibValue :: Value;
+    stdLibValue :: (?context :: String) => Value;
     stdLibValue = toValue stdLib;
 }
