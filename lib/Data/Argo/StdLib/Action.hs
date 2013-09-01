@@ -8,22 +8,22 @@ module Data.Argo.StdLib.Action(action) where
     
     instance FromValue Value [Actionable] where
     {
-        fromValueMaybe (ArrayValue x) = Just (fmap fromValue x);
-        fromValueMaybe _ = Nothing;
+        fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
+        fromValueMaybe v = typeFail "array" v;
     };
     
     instance FromValue Value Actionable where
     {
         fromValueMaybe v = case fromValueMaybe v of
         {
-            Just x -> Just (ListActionable x);
+            Just x -> return (ListActionable x);
             Nothing -> case fromValueMaybe v of
             {
-                Just x -> Just (FuncActionable x);
+                Just x -> return (FuncActionable x);
                 Nothing -> case fromValueMaybe v of
                 {
-                    Just x -> Just (IOActionable x);
-                    Nothing -> Nothing
+                    Just x -> return (IOActionable x);
+                    Nothing -> typeFail "actionable" v;
                 }
             }
         };

@@ -14,7 +14,7 @@ module Data.Argo(module Data.Argo) where
     evaluateWithStdLib libReader source = do
     {
         val :: Value <- evaluateWithLibs stdLibValue libReader source;
-        fromValueM val;
+        fromValueMaybe val;
     };
 
     readFileIfExists :: FilePath -> IO (Maybe String);

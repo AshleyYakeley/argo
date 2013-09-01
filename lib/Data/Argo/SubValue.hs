@@ -13,9 +13,12 @@ module Data.Argo.SubValue where
         toValue :: (?context :: String) => t -> value;
     };
     
+    typeFail :: forall m value a. (Monad m,Show value,?context :: String) => String -> value -> m a;
+    typeFail typeName v = failC ((show v) ++ " is not of type " ++ typeName);
+    
     class FromValue value t where
     {
-        fromValueMaybe :: (?context :: String) => value -> Maybe t;
+        fromValueMaybe :: forall m. (Applicative m,Monad m,?context :: String) => value -> m t;
     };
     
     type SubValue value t = (FromValue value t,ToValue value t);
@@ -26,17 +29,10 @@ module Data.Argo.SubValue where
     fromValue :: (FromValue value t,Show value,?context :: String) => value -> t;
     fromValue v = case fromValueMaybe v of
     {
-        Just t -> t;
-        Nothing -> errorC ("wrong type: " ++ (show v));
+        Right t -> t;
+        Left err -> error err;
     };
 
-    fromValueM :: (Monad m,FromValue value t,Show value,?context :: String) => value -> m t;
-    fromValueM v = case fromValueMaybe v of
-    {
-        Just t -> return t;
-        Nothing -> failC ("wrong type: " ++ (show v));
-    };
-    
-    applyValue :: (FromValue v (v -> v),Show v,?context :: String) => v -> v -> v;
+    applyValue :: (FromValue value (value -> value),Show value,?context :: String) => value -> value -> value;
     applyValue = fromValue;
 }
