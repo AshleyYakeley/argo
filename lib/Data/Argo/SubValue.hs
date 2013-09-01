@@ -23,24 +23,20 @@ module Data.Argo.SubValue where
     isValue :: (Eq t,FromValue value t,?context :: String) => t -> value -> Bool;
     isValue t v = fromValueMaybe v == Just t;
 
-    fromValue :: (FromValue value t,?context :: String) => value -> t;
+    fromValue :: (FromValue value t,Show value,?context :: String) => value -> t;
     fromValue v = case fromValueMaybe v of
     {
         Just t -> t;
-        Nothing -> errorC "wrong type";
+        Nothing -> errorC ("wrong type: " ++ (show v));
     };
 
-    fromValueM :: (Monad m,FromValue value t,?context :: String) => value -> m t;
+    fromValueM :: (Monad m,FromValue value t,Show value,?context :: String) => value -> m t;
     fromValueM v = case fromValueMaybe v of
     {
         Just t -> return t;
-        Nothing -> failC "wrong type";
+        Nothing -> failC ("wrong type: " ++ (show v));
     };
     
-    applyValue :: (FromValue v (v -> v),?context :: String) => v -> v -> v;
-    applyValue f a = case fromValueMaybe f of
-    {
-        Just ff -> ff a;
-        Nothing -> errorC "non-function application";
-    };
+    applyValue :: (FromValue v (v -> v),Show v,?context :: String) => v -> v -> v;
+    applyValue = fromValue;
 }

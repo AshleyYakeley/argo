@@ -26,7 +26,8 @@ module Data.Argo.Read where
         SubValue v Rational,
         SubValue v String,
         SubValue v [v],
-        SubValue v (v -> v)
+        SubValue v (v -> v),
+        Show v
     ) => ValueRead v where
     {
         valueTypeName :: v -> String;
