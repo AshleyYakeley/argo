@@ -92,6 +92,26 @@ module Data.Argo.Value where
         fromValueMaybe v = fmap fromInteger (fromValueMaybe v :: Maybe Integer);
     };
 
+    instance ToValue Value Int32 where
+    {
+        toValue = toValue . toInteger;
+    };
+    
+    instance FromValue Value Int32 where
+    {
+        fromValueMaybe v = fmap fromInteger (fromValueMaybe v :: Maybe Integer);
+    };
+
+    instance FromValue Value CInt where
+    {
+        fromValueMaybe v = fmap CInt (fromValueMaybe v);
+    };
+
+    instance ToValue Value CInt where
+    {
+        toValue (CInt x) = toValue x;
+    };
+
     instance ToValue Value String where
     {
         toValue = StringValue;

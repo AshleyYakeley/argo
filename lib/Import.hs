@@ -13,6 +13,7 @@ module Import(module Import) where
     import Data.Tuple as Import;
     import Data.List as Import ((++),null,take,drop,intercalate);
     import Data.Word as Import;
+    import Data.Int as Import;
     import Data.Char as Import;
     import Data.String as Import;
     import Control.Applicative as Import;
@@ -23,6 +24,7 @@ module Import(module Import) where
     import Text.Read as Import (Read(..),readListPrecDefault,readPrec_to_P,readP_to_Prec,readMaybe);
     import Text.ParserCombinators.ReadP as Import(ReadP,char,(<++),get,satisfy,skipSpaces,eof,readP_to_S);
     import Text.ParserCombinators.ReadPrec as Import(minPrec);
+    import Foreign.C.Types as Import;
     
     -- transformers
     import Data.Functor.Identity as Import;

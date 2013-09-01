@@ -4,7 +4,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Data.Argo.SubValue;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Action;
-    --import System.Process;
+--    import Data.Argo.StdLib.File;
+    import Data.Argo.StdLib.Process;
     import System.IO.UTF8;
     import System.IO hiding (hPutStr);
 
@@ -66,42 +67,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
             return (t:a,b);
         };
     };
-    
-     
-{-
-    source :: 
 
-    fileRead :: String -> IO [Word8];
-
-    fileWrite :: String -> [Word8] -> IO ();
-
-    fileType :: String -> IO Value;
-    fileType
-
-    file :: String -> String -> Value;
-    file path "type" = toValue (fileType path);
-    file path "read" = toValue (fileRead path);
-    file path "write" = toValue (fileWrite path);
-    file _path _ = toValue ();
-
-    startProcess :: (String -> Value) -> IO Int;
-    startProcess fargs = let
-    {
-        arg s = fromValue (fargs s);
-    };
-
-    CreateProcess
-    {
-        cmdspec = RawCommand cmdpath args,
-        cwd = arg "wd",
-        env = Nothing,
-        std_in = Inherit,
-        std_out = Inherit,
-        std_err = Inherit
-    }
-
-    process :: Int -> 
--}
     stdoutV :: String -> IO ();
     stdoutV = hPutStr stdout;
 
@@ -133,6 +99,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "bytes" = toValue bytes;
 
 --    stdLib "file" = toValue file;
+
+    stdLib "start-process" = toValue startProcess;
+    stdLib "run-process" = toValue runProcess;
 
     stdLib "stdout" = toValue stdoutV;
 
