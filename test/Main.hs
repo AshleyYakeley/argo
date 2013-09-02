@@ -96,7 +96,23 @@ module Main where
         -- comments
         evalTest "#\n34" (return (NumberValue 34)),
         evalTest "#\n{#\na#\n:#\na#\n}#\n89#\n" (return (NumberValue 89)),
-        evalTest " #\n { #\n a #\n : #\n a #\n } #\n 89 #\n" (return (NumberValue 89))       
+        evalTest " #\n { #\n a #\n : #\n a #\n } #\n 89 #\n" (return (NumberValue 89)),
+        
+        -- parentheses
+        evalTest "(1)" (return (NumberValue 1)),
+        evalTest "({a:a} 1)" (return (NumberValue 1)),
+        evalTest "{a:a} (1)" (return (NumberValue 1)),
+        evalTest "{a:(a)} 1" (return (NumberValue 1)),
+        
+        -- let-binding
+        evalTest "a=1,a" (return (NumberValue 1)),
+        evalTest "(a=1,a)" (return (NumberValue 1)),
+        evalTest "a=1,(a)" (return (NumberValue 1)),
+        evalTest "a=(1),a" (return (NumberValue 1)),
+        evalTest "[a=1,a]" (return (ArrayValue [NumberValue 1])),
+        evalTest "b=(a=1,a),b" (return (NumberValue 1)),
+        evalTest "b=a=1,a,b" (return (NumberValue 1)),
+        evalTest "a=1,b=2,[b,a]" (return (ArrayValue [NumberValue 2,NumberValue 1]))
     ] ++ concat
         -- pattern matching wildcard & type
     [

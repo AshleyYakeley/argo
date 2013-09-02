@@ -180,9 +180,12 @@ module Data.Argo.Read where
         goodChar '}' = False;
         goodChar '[' = False;
         goodChar ']' = False;
+        goodChar '(' = False;
+        goodChar ')' = False;
         goodChar ',' = False;
         goodChar ';' = False;
         goodChar '@' = False;
+        goodChar '=' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
@@ -324,6 +327,10 @@ module Data.Argo.Read where
             return (matchAll (pat1:patr));
         };
 
+        argoBind :: ArgoPatternExpression v v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);
+        argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
+         (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
+
         readFunction :: ReadP (ArgoExpression v (v -> v));
         readFunction = do
         {
@@ -346,10 +353,6 @@ module Data.Argo.Read where
                 result <- readExpression;
                 return (fromMaybe (patternMatch (isValue ())) mpat,result);
             };
-
-            argoBind :: ArgoPatternExpression v v -> ArgoExpression v r -> ArgoExpression v (v -> Maybe r);
-            argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
-             (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
             assembleFunction :: [(ArgoPatternExpression v v,ArgoExpression v v)] -> ArgoExpression v (v -> v);
             assembleFunction [] = pure (\_ -> toValue ());
@@ -433,8 +436,8 @@ module Data.Argo.Read where
             return (monoValueSymbol (LibReference libname));
         };
         
-        readExpression :: ReadP (ArgoExpression v v);
-        readExpression = do
+        readExpressionNoLet :: ReadP (ArgoExpression v v);
+        readExpressionNoLet = do
         {
             (f:args) <- some readTerm;
             return (applyArgs f args);
@@ -443,6 +446,17 @@ module Data.Argo.Read where
             applyArgs expf [] = expf;
             applyArgs expf (expa:args) = applyArgs (liftA2 applyValue expf expa) args;
         };
+        
+        readExpression :: ReadP (ArgoExpression v v);
+        readExpression = do
+        {
+            patExpr <- readPattern;
+            readWSAndChar '=';
+            bindExpr <- readExpression;
+            readWSAndChar ',';
+            valExpr <- readExpression;
+            return (liftA2 (\vmv v -> fromMaybe (errorC "unmatched binding") (vmv v)) (argoBind patExpr valExpr) bindExpr);
+        } <++ readExpressionNoLet;
         
         readExpressionToEnd :: ReadP (ArgoExpression v v);
         readExpressionToEnd = do
