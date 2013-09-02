@@ -92,12 +92,32 @@ module Data.Argo.Value where
         fromValueMaybe v = fmap fromInteger (fromValueMaybe v);
     };
 
+    instance ToValue Value Word32 where
+    {
+        toValue = toValue . toInteger;
+    };
+    
+    instance FromValue Value Word32 where
+    {
+        fromValueMaybe v = fmap fromInteger (fromValueMaybe v);
+    };
+
     instance ToValue Value Int32 where
     {
         toValue = toValue . toInteger;
     };
     
     instance FromValue Value Int32 where
+    {
+        fromValueMaybe v = fmap fromInteger (fromValueMaybe v);
+    };
+
+    instance ToValue Value Int64 where
+    {
+        toValue = toValue . toInteger;
+    };
+    
+    instance FromValue Value Int64 where
     {
         fromValueMaybe v = fmap fromInteger (fromValueMaybe v);
     };
@@ -134,6 +154,17 @@ module Data.Argo.Value where
         fromValueMaybe v = typeFail "bytes" v;
     };
 
+    instance ToValue Value [[Word8]] where
+    {
+        toValue x = ArrayValue (fmap toValue x);
+    };
+    
+    instance FromValue Value [[Word8]] where
+    {
+        fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
+        fromValueMaybe v = typeFail "array" v;
+    };
+
     instance ToValue Value [String] where
     {
         toValue x = ArrayValue (fmap toValue x);
@@ -145,12 +176,23 @@ module Data.Argo.Value where
         fromValueMaybe v = typeFail "array" v;
     };
 
-    instance ({-ToValue Value a-}) => ToValue Value [Value] where
+    instance ToValue Value [Value] where
     {
         toValue x = ArrayValue (fmap toValue x);
     };
     
-    instance ({-FromValue Value a-}) => FromValue Value [Value] where
+    instance FromValue Value [Value] where
+    {
+        fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
+        fromValueMaybe v = typeFail "array" v;
+    };
+
+    instance ToValue Value [[Value]] where
+    {
+        toValue x = ArrayValue (fmap toValue x);
+    };
+    
+    instance FromValue Value [[Value]] where
     {
         fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
         fromValueMaybe v = typeFail "array" v;
@@ -159,13 +201,6 @@ module Data.Argo.Value where
     instance (FromValue Value a,ToValue Value b) => ToValue Value (a -> b) where
     {
         toValue ab = FunctionValue (toValue . ab . fromValue);
-{-
-        toValue ab = FunctionValue (\v -> case fromValueMaybe v of
-        {
-            Just a -> toValue (ab a);
-            Nothing -> toValue ();
-        });
--}
     };
     
     instance (ToValue Value a,FromValue Value b) => FromValue Value (a -> b) where

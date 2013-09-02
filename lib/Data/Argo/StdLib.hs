@@ -4,7 +4,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Data.Argo.SubValue;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Action;
---    import Data.Argo.StdLib.File;
+    import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
     import System.IO.UTF8;
     import System.IO hiding (hPutStr);
@@ -87,21 +87,22 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     stdLib :: (?context :: String) => String -> Value;
     stdLib "default" = toValue defaultV;
-    stdLib "default-function" = toValue defaultFunction;
+    stdLib "function-default" = toValue defaultFunction;
     stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
     stdLib "-" = toValue ((-) :: Rational -> Rational -> Rational);
     stdLib "=" = toValue eq;
 
     stdLib "take" = toValue takeV;
     stdLib "drop" = toValue dropV;
-    stdLib "subst" = toValue subst;
+    stdLib "string-subst" = toValue subst;
+    stdLib "string-concat" = toValue (concat :: [String] -> String);
+    stdLib "bytes-concat" = toValue (concat :: [[Word8]] -> [Word8]);
+    stdLib "array-concat" = toValue (concat :: [[Value]] -> [Value]);
 
     stdLib "bytes" = toValue bytes;
 
---    stdLib "file" = toValue file;
-
-    stdLib "start-process" = toValue startProcess;
-    stdLib "run-process" = toValue runProcess;
+    stdLib "process-start" = toValue startProcess;
+    stdLib "process-run" = toValue runProcess;
 
     stdLib "stdout" = toValue stdoutV;
 
@@ -109,7 +110,11 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "return" = toValue (return :: Value -> IO Value);
     stdLib "action" = toValue action;
     stdLib "fix" = toValue fixV;
-    stdLib _ = toValue ();
+    stdLib s = case fileFunctions s of
+    {
+        Just r -> r;
+        Nothing -> toValue ();
+    };
 
     stdLibValue :: (?context :: String) => Value;
     stdLibValue = toValue stdLib;
