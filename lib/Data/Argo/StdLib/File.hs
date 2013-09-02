@@ -87,8 +87,13 @@ module Data.Argo.StdLib.File(fileFunctions) where
         return (fmap fileType mstat);
     };
 
+    pathConcat :: [FilePath] -> FilePath;
+    pathConcat [p] = p;
+    pathConcat (p:pp) = combine p (pathConcat pp);
+    pathConcat [] = ".";
+
     fileFunctions :: (?context :: String) => String -> Maybe Value;
-    fileFunctions "path-combine" = Just (toValue combine);
+    fileFunctions "path-concat" = Just (toValue pathConcat);
     fileFunctions "path-rename" = Just (toValue rename);
     fileFunctions "path-touch" = Just (toValue touchFile);
     fileFunctions "path-setown" = Just (toValue setOwnerAndGroup);
