@@ -176,6 +176,17 @@ module Data.Argo.Value where
         fromValueMaybe v = typeFail "array" v;
     };
 
+    instance (ToValue Value (a -> b)) => ToValue Value [a -> b] where
+    {
+        toValue x = ArrayValue (fmap toValue x);
+    };
+    
+    instance (FromValue Value (a -> b)) => FromValue Value [a -> b] where
+    {
+        fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
+        fromValueMaybe v = typeFail "array" v;
+    };
+
     instance ToValue Value [String] where
     {
         toValue x = ArrayValue (fmap toValue x);
