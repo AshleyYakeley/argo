@@ -62,7 +62,7 @@ module Data.Argo.Read where
                             };
                             return ();
                         };
-                        Nothing -> failC "not found";
+                        Nothing -> failC "library not found";
                     };
                 };
             };

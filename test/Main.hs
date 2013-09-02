@@ -171,6 +171,7 @@ module Main where
         evalTestWithLibs [("z","$\"std\" \"+\" 3 4")] "$\"z\"" (return (NumberValue 7)),
 --        evalTestWithLibs [("z","$\"std\" \"+\" 3 null")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
 --        evalTestWithLibs [("z","$\"std\" \"+\" null 3")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
+        evalTestWithLibs [("a","$\"std\" \"+\" 3 4"),("b","$\"a\""),("c","$\"b\""),("d","$\"c\"")] "$\"d\"" (return (NumberValue 7)),
 
         -- recursive library reference
         evalTestWithLibs [("a","[4;$this]")] "$\"std\" \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
