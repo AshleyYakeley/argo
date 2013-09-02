@@ -6,8 +6,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Data.Argo.StdLib.Action;
     import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
+    import Codec.Binary.UTF8.String;
     import System.IO.UTF8;
-    import System.IO hiding (hPutStr);
+    import System.IO hiding (hPutStr,utf8);
 
     fixV :: (Value -> Value) -> Value;
     fixV f = f (fixV f);
@@ -43,6 +44,10 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
         digitStreamToBytes [_] = error "extra hex digit";
         digitStreamToBytes (a:b:rest) = ((a * 16) + b):(digitStreamToBytes rest);
     };
+    
+    utf8 :: Either String [Word8] -> Either [Word8] String;
+    utf8 (Left s) = Left (encode s);
+    utf8 (Right b) = Right (decode b);
     
     subst :: String -> String -> String -> (String -> String) -> String;
     subst pre post template dict = case searchList pre template of
@@ -100,6 +105,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "array-concat" = toValue (concat :: [[Value]] -> [Value]);
 
     stdLib "bytes" = toValue bytes;
+    stdLib "utf-8" = toValue utf8;
 
     stdLib "process-start" = toValue startProcess;
     stdLib "process-run" = toValue runProcess;
