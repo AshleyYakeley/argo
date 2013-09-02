@@ -1,10 +1,11 @@
 module Data.Argo.Value where
 {
     import Import;
+    import qualified Data.ByteString as B;
     import Data.Argo.SubValue;
     import Data.Argo.Read;
     
-    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue [Word8] | ActionValue (IO Value);
+    data Value = NullValue | BoolValue Bool | NumberValue Rational | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue ByteString | ActionValue (IO Value);
     
     castValue :: (ToValue Value a,FromValue Value b,?context :: String) => a -> b;
     castValue a = fromValue (toValue a :: Value);
@@ -143,23 +144,33 @@ module Data.Argo.Value where
         fromValueMaybe v = typeFail "string" v;
     };
 
-    instance ToValue Value [Word8] where
+    instance ToValue Value ByteString where
     {
         toValue = ByteArrayValue;
     };
     
-    instance FromValue Value [Word8] where
+    instance FromValue Value ByteString where
     {
         fromValueMaybe (ByteArrayValue x) = return x;
         fromValueMaybe v = typeFail "bytes" v;
     };
 
-    instance ToValue Value [[Word8]] where
+    instance ToValue Value [Word8] where
+    {
+        toValue = toValue . B.pack;
+    };
+    
+    instance FromValue Value [Word8] where
+    {
+        fromValueMaybe v = fmap B.unpack (fromValueMaybe v);
+    };
+
+    instance ToValue Value [ByteString] where
     {
         toValue x = ArrayValue (fmap toValue x);
     };
     
-    instance FromValue Value [[Word8]] where
+    instance FromValue Value [ByteString] where
     {
         fromValueMaybe (ArrayValue x) = return (fmap fromValue x);
         fromValueMaybe v = typeFail "array" v;
@@ -246,7 +257,7 @@ module Data.Argo.Value where
         show (BoolValue False) = "false";
         show (NumberValue n) = show n;
         show (StringValue s) = show s;
-        show (ByteArrayValue bb) = "bytes \"" ++ (concat (fmap hexByte bb)) ++ "\"" where
+        show (ByteArrayValue bb) = "bytes \"" ++ (concat (fmap hexByte (B.unpack bb))) ++ "\"" where
         {
             hexByte :: Word8 -> String;
             hexByte b = [hexChar (div b 16),hexChar (mod b 16)];

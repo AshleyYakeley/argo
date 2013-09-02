@@ -36,4 +36,7 @@ module Import(module Import) where
     import Data.Witness.EqualType as Import;
     import Data.Witness.SimpleWitness as Import;
     import Data.Witness.List as Import;
+    
+    -- bytestring
+    import Data.ByteString as Import (ByteString);
 }

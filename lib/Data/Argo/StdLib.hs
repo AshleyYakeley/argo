@@ -1,6 +1,7 @@
 module Data.Argo.StdLib(stdLib,stdLibValue) where
 {
     import Import;
+    import qualified Data.ByteString as B;
     import Data.Argo.SubValue;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Action;
@@ -101,7 +102,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "drop" = toValue dropV;
     stdLib "string-subst" = toValue subst;
     stdLib "string-concat" = toValue (concat :: [String] -> String);
-    stdLib "bytes-concat" = toValue (concat :: [[Word8]] -> [Word8]);
+    stdLib "bytes-concat" = toValue B.concat;
     stdLib "array-concat" = toValue (concat :: [[Value]] -> [Value]);
 
     stdLib "bytes" = toValue bytes;
