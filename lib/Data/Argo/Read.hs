@@ -6,14 +6,13 @@ module Data.Argo.Read where
     import Data.Argo.SubValue;
     import qualified Control.Monad.Trans.State;
     
-    data Reference = ThisReference | StdReference | LibReference String | SymbolReference String deriving (Eq);
+    data Reference = ThisReference | LibReference String | SymbolReference String deriving (Eq);
    
     instance Show Reference where
     {
         show (SymbolReference s) = s;
         show (LibReference s) = '$':(show s);
         show ThisReference = "$this";
-        show StdReference = "$std";
     };
     
     type ArgoExpression v = MonoValueExpression Reference v Identity;
@@ -34,10 +33,10 @@ module Data.Argo.Read where
     };
 
     -- The recursive library lookup magic happens here.
-    evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m,?context::String) => v -> (String -> m (Maybe String)) -> String -> m v;
-    evaluateWithLibs stdlib libReader source = mdo
+    evaluateWithLibs :: forall v m. (Show v,ValueRead v,Applicative m,MonadFix m,?context::String) => (String -> m (Maybe (Either String v))) -> String -> m v;
+    evaluateWithLibs libReader source = mdo
     {
-        (v,dict) <- runStateT (evaluateSource stdlib (lookup dict) source) (\_ -> Nothing);
+        (v,dict) <- runStateT (evaluateSource (lookup dict) source) (\_ -> Nothing);
         return v;
     } where
     {
@@ -53,10 +52,14 @@ module Data.Argo.Read where
                     mlibtext <- lift (libReader libname);
                     case mlibtext of
                     {
-                        Just libtext -> mdo
+                        Just lib -> mdo
                         {
                             put (\libname' -> if libname == libname' then Just r else curdict libname');
-                            r <- evaluateSource stdlib (lookup dict) libtext;
+                            r <- case lib of
+                            {
+                                Left libtext -> evaluateSource (lookup dict) libtext;
+                                Right libval -> return libval;
+                            };
                             return ();
                         };
                         Nothing -> failC "not found";
@@ -71,13 +74,12 @@ module Data.Argo.Read where
         };
     };
 
-    evaluateSource :: (ValueRead v,Applicative m,MonadFix m,?context::String) => v -> (String -> m v) -> String -> m v;
-    evaluateSource stdlib libLookup s = mfix (\this -> let
+    evaluateSource :: (ValueRead v,Applicative m,MonadFix m,?context::String) => (String -> m v) -> String -> m v;
+    evaluateSource libLookup s = mfix (\this -> let
     {
         resolve (SymbolReference sym) = failC ("undefined: " ++ sym);
         resolve (LibReference libname) = libLookup libname;
         resolve ThisReference = return this;
-        resolve StdReference = return stdlib;
     } in do
     {
         expr <- readText s;
@@ -425,7 +427,6 @@ module Data.Argo.Read where
             case name of
             {
                 "this" -> return (monoValueSymbol ThisReference);
-                "std" -> return (monoValueSymbol StdReference);
                 _ -> mzero;
             };
         } <++ 

@@ -125,7 +125,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib s = case fileFunctions s of
     {
         Just r -> r;
-        Nothing -> errorC ("not in $std: " ++ s);
+        Nothing -> errorC ("$\"std\" " ++ (show s) ++ ": not found");
     };
 
     stdLibValue :: (?context :: String) => Value;

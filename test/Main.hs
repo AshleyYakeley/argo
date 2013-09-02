@@ -15,7 +15,7 @@ module Main where
 
     evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
     evalTestWithLibs libs s mv = let {?context = "test"} in
-     pureTest s (diff (show mv) (show (evaluateWithLibs stdLibValue (libFinder libs) s :: FailM Value)));
+     pureTest s (diff (show mv) (show (evaluateWithStdLib (libFinder libs) s :: FailM Value)));
 
     evalTest :: String -> FailM Value -> Test;
     evalTest = evalTestWithLibs [];
@@ -141,41 +141,41 @@ module Main where
         evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
     ] ++
     [
-        evalTest "$std \"+\" 3 4" (return (NumberValue 7)),
-        evalTest "$std \"fix\"" (return (FunctionValue id)),
-        evalTest "$std \"fix\" {fib:{0:0,1:1,n:$std \"+\" (fib ($std \"-\" n 1)) (fib ($std \"-\" n 2))}} 11" (return (NumberValue 89)),
+        evalTest "$\"std\" \"+\" 3 4" (return (NumberValue 7)),
+        evalTest "$\"std\" \"fix\"" (return (FunctionValue id)),
+        evalTest "$\"std\" \"fix\" {fib:{0:0,1:1,n:$\"std\" \"+\" (fib ($\"std\" \"-\" n 1)) (fib ($\"std\" \"-\" n 2))}} 11" (return (NumberValue 89)),
         
-        evalTest "$std \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
-        evalTest "$std \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
-        evalTest "$std \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
-        evalTest "$std \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
+        evalTest "$\"std\" \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
+        evalTest "$\"std\" \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
+        evalTest "$\"std\" \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
+        evalTest "$\"std\" \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
         
-        evalTest "$std \"bytes\" \"AF 30 2b05\"" (return (ByteArrayValue (B.pack [0xAF,0x30,0x2B,0x05]))),
+        evalTest "$\"std\" \"bytes\" \"AF 30 2b05\"" (return (ByteArrayValue (B.pack [0xAF,0x30,0x2B,0x05]))),
         
-        evalTest "$std \"=\" null null" (return (BoolValue True)),
-        evalTest "$std \"=\" 1 1" (return (BoolValue True)),
-        evalTest "$std \"=\" 1 2" (return (BoolValue False)),
-        evalTest "$std \"=\" {} {}" (return (BoolValue False)),
-        evalTest "$std \"=\" [] []" (return (BoolValue True)),
-        evalTest "$std \"=\" [] {}" (return (BoolValue False)),
-        evalTest "$std \"=\" 2 {}" (return (BoolValue False)),
-        evalTest "$std \"=\" [{}] [{}]" (return (BoolValue False)),
-        evalTest "$std \"=\" [[]] [[]]" (return (BoolValue True)),
-        evalTest "$std \"=\" [4] [4]" (return (BoolValue True)),
+        evalTest "$\"std\" \"=\" null null" (return (BoolValue True)),
+        evalTest "$\"std\" \"=\" 1 1" (return (BoolValue True)),
+        evalTest "$\"std\" \"=\" 1 2" (return (BoolValue False)),
+        evalTest "$\"std\" \"=\" {} {}" (return (BoolValue False)),
+        evalTest "$\"std\" \"=\" [] []" (return (BoolValue True)),
+        evalTest "$\"std\" \"=\" [] {}" (return (BoolValue False)),
+        evalTest "$\"std\" \"=\" 2 {}" (return (BoolValue False)),
+        evalTest "$\"std\" \"=\" [{}] [{}]" (return (BoolValue False)),
+        evalTest "$\"std\" \"=\" [[]] [[]]" (return (BoolValue True)),
+        evalTest "$\"std\" \"=\" [4] [4]" (return (BoolValue True)),
         
         -- lib loading
         evalTestWithLibs [("a","[2]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
         evalTestWithLibs [("a","[2;$\"b\"]"),("b","[3]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
         evalTestWithLibs [("b","[3]"),("a","[2;$\"b\"]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
 --        evalTestWithLibs [("a","null null")] "[1;$\"a\"]" (fail "test: $\"a\": null is not of type function"),
-        evalTestWithLibs [("z","$std \"+\" 3 4")] "$\"z\"" (return (NumberValue 7)),
---        evalTestWithLibs [("z","$std \"+\" 3 null")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
---        evalTestWithLibs [("z","$std \"+\" null 3")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
+        evalTestWithLibs [("z","$\"std\" \"+\" 3 4")] "$\"z\"" (return (NumberValue 7)),
+--        evalTestWithLibs [("z","$\"std\" \"+\" 3 null")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
+--        evalTestWithLibs [("z","$\"std\" \"+\" null 3")] "$\"z\"" (fail "test: $\"z\": null is not of type number"),
 
         -- recursive library reference
-        evalTestWithLibs [("a","[4;$this]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
-        evalTestWithLibs [("a","[4;$\"a\"]")] "$std \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
-        evalTestWithLibs [("a","[5;$\"b\"]"),("b","[7;$\"a\"]")] "$std \"take\" 4 $\"a\""
+        evalTestWithLibs [("a","[4;$this]")] "$\"std\" \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
+        evalTestWithLibs [("a","[4;$\"a\"]")] "$\"std\" \"take\" 2 $\"a\"" (return (ArrayValue [NumberValue 4,NumberValue 4])),
+        evalTestWithLibs [("a","[5;$\"b\"]"),("b","[7;$\"a\"]")] "$\"std\" \"take\" 4 $\"a\""
             (return (ArrayValue [NumberValue 5,NumberValue 7,NumberValue 5,NumberValue 7]))
     ] where
     {

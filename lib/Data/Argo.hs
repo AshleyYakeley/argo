@@ -13,7 +13,11 @@ module Data.Argo(module Data.Argo) where
     evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue Value a,?context :: String) => (String -> m (Maybe String)) -> String -> m a;
     evaluateWithStdLib libReader source = do
     {
-        val :: Value <- evaluateWithLibs stdLibValue libReader source;
+        val :: Value <- evaluateWithLibs (\s -> case s of
+        {
+            "std" -> return (Just (Right stdLibValue));
+            _ -> fmap (fmap Left) (libReader s);
+        }) source;
         fromValueMaybe val;
     };
 
