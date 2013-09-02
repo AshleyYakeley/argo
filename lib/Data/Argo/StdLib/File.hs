@@ -67,14 +67,33 @@ module Data.Argo.StdLib.File(fileFunctions) where
             fsf _ = toValue ();
         };
     };
-       
+
+    pathStatus :: FilePath -> IO (Maybe FileStatus);
+    pathStatus path = do
+    {
+        ex <- fileExist path;
+        if ex then do
+        {
+            st <- getFileStatus path;
+            return (Just st);
+        }
+        else return Nothing;
+    };
+
+    pathType :: FilePath -> IO (Maybe String);
+    pathType path = do
+    {
+        mstat <- pathStatus path;
+        return (fmap fileType mstat);
+    };
+
     fileFunctions :: (?context :: String) => String -> Maybe Value;
     fileFunctions "path-combine" = Just (toValue combine);
     fileFunctions "path-rename" = Just (toValue rename);
     fileFunctions "path-touch" = Just (toValue touchFile);
     fileFunctions "path-setown" = Just (toValue setOwnerAndGroup);
-    fileFunctions "path-status" = Just (toValue getFileStatus);
-    fileFunctions "path-type" = Just (toValue (\path -> fmap fileType (getFileStatus path)));
+    fileFunctions "path-status" = Just (toValue pathStatus);
+    fileFunctions "path-type" = Just (toValue pathType);
     fileFunctions "file-get" = Just (toValue readFile);
     fileFunctions "file-set" = Just (toValue writeFile);
     fileFunctions "file-remove" = Just (toValue removeLink);
