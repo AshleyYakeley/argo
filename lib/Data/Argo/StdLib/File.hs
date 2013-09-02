@@ -8,7 +8,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     import System.Posix.Types;
     import System.Posix.Directory;
     import System.Posix.Files;
-    import System.IO.UTF8;
+    import qualified Data.ByteString as B;
     import Data.Argo.SubValue;
     import Data.Argo.Value;
 
@@ -99,8 +99,9 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileFunctions "path-setown" = Just (toValue setOwnerAndGroup);
     fileFunctions "path-status" = Just (toValue pathStatus);
     fileFunctions "path-type" = Just (toValue pathType);
-    fileFunctions "file-get" = Just (toValue readFile);
-    fileFunctions "file-set" = Just (toValue writeFile);
+    fileFunctions "file-get" = Just (toValue B.readFile);
+    fileFunctions "file-set" = Just (toValue B.writeFile);
+    fileFunctions "file-append" = Just (toValue B.appendFile);
     fileFunctions "file-remove" = Just (toValue removeLink);
     fileFunctions "file-rename" = Just (toValue renameFile);
     fileFunctions "file-copy" = Just (toValue copyFile);

@@ -92,6 +92,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     eqArray _ _ = False;
 
     stdLib :: (?context :: String) => String -> Value;
+    stdLib "error" = toValue (errorC :: String -> Value);
+    
     stdLib "default" = toValue defaultV;
     stdLib "function-default" = toValue defaultFunction;
     stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
@@ -105,6 +107,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "bytes-concat" = toValue B.concat;
     stdLib "array-concat" = toValue (concat :: [[Value]] -> [Value]);
 
+    stdLib "subst" = toValue subst;
+
     stdLib "bytes" = toValue bytes;
     stdLib "utf-8" = toValue utf8;
 
@@ -116,11 +120,12 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
     stdLib "action" = toValue action;
+    stdLib "fail" = toValue (fail :: String -> IO Value);
     stdLib "fix" = toValue fixV;
     stdLib s = case fileFunctions s of
     {
         Just r -> r;
-        Nothing -> toValue ();
+        Nothing -> errorC ("not in $std: " ++ s);
     };
 
     stdLibValue :: (?context :: String) => Value;
