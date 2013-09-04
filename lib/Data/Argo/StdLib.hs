@@ -99,6 +99,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "-" = toValue ((-) :: Rational -> Rational -> Rational);
     stdLib "=" = toValue eq;
 
+    stdLib "show" = toValue (show :: Value -> String);
+
     stdLib "take" = toValue takeV;
     stdLib "drop" = toValue dropV;
     stdLib "string-subst" = toValue subst;

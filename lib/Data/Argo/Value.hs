@@ -124,7 +124,7 @@ module Data.Argo.Value where
         show NullValue = "null";
         show (BoolValue True) = "true";
         show (BoolValue False) = "false";
-        show (NumberValue n) = show n;
+        show (NumberValue n) = showNumber n;
         show (StringValue s) = show s;
         show (ByteArrayValue bb) = "bytes \"" ++ (concat (fmap hexByte (B.unpack bb))) ++ "\"" where
         {
