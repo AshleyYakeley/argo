@@ -2,6 +2,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 {
     import Import;
     import qualified Data.ByteString as B;
+    import Data.Argo.Number;
     import Data.Argo.SubValue;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Action;
@@ -34,9 +35,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     {
         toDigitStream :: String -> [Word8];
         toDigitStream [] = [];
-        toDigitStream (c:cc) | (c >= '0') && (c <= '9') = (toEnum ((fromEnum c) - (fromEnum '0'))):(toDigitStream cc);
-        toDigitStream (c:cc) | (c >= 'A') && (c <= 'F') = (toEnum ((fromEnum c) - (fromEnum 'A')) + 10):(toDigitStream cc);
-        toDigitStream (c:cc) | (c >= 'a') && (c <= 'f') = (toEnum ((fromEnum c) - (fromEnum 'a')) + 10):(toDigitStream cc);
+        toDigitStream (c:cc) | Just i <- hexDigit c = (toEnum i):(toDigitStream cc);
         toDigitStream (c:cc) | isSpace c = toDigitStream cc;
         toDigitStream (c:_) = error ("unrecognised char in bytes: " ++ [c]);
         

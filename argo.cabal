@@ -23,6 +23,7 @@ library
         Data.Argo.StdLib
     other-modules:      
         Import
+        Data.Argo.Number
         Data.Argo.StdLib.Action
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
@@ -49,6 +50,8 @@ library
         ConstraintKinds
         RecursiveDo
         ImplicitParams
+        UndecidableInstances
+        PatternGuards
     ghc-options: -Wall
 
 executable argo

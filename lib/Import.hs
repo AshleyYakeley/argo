@@ -1,7 +1,7 @@
 module Import(module Import) where
 {
     -- base
-    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO);
+    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO,Fractional(..),(^^));
     import Data.Function as Import;
     import Data.Functor as Import;
     import Data.Foldable as Import;
@@ -39,4 +39,13 @@ module Import(module Import) where
     
     -- bytestring
     import Data.ByteString as Import (ByteString);
+
+    optionalMax :: ReadP a -> ReadP (Maybe a);
+    optionalMax p = (fmap Just p) <++ return Nothing;
+
+    manyMax :: ReadP a -> ReadP [a];
+    manyMax p =  many1Max p <++ return [];
+
+    many1Max :: ReadP a -> ReadP [a];
+    many1Max p = liftA2 (:) p (manyMax p);
 }

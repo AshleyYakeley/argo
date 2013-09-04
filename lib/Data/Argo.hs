@@ -1,5 +1,6 @@
 module Data.Argo(module Data.Argo) where
 {
+    import Data.Argo.Number as Data.Argo;
     import Data.Argo.SubValue as Data.Argo;
     import Data.Argo.Read as Data.Argo;
     import Data.Argo.Value as Data.Argo;

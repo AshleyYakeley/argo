@@ -1,5 +1,6 @@
 module Main where
 {
+    import Data.Ratio;
     import qualified Data.ByteString as B;
     import Test.Framework;
     import TestUtil;
@@ -45,6 +46,22 @@ module Main where
         evalTest "0" (return (NumberValue 0)),
         evalTest "3" (return (NumberValue 3)),
         evalTest "-4" (return (NumberValue (-4))),
+        evalTest "2/3" (return (NumberValue (2%3))),
+        evalTest "-18/6" (return (NumberValue (-3))),
+        evalTest "-21/5" (return (NumberValue (-4.2))),
+        evalTest "19.1" (return (NumberValue (19.1))),
+        evalTest "-1.3" (return (NumberValue (-1.3))),
+        evalTest "25" (return (NumberValue (25))),
+        evalTest "25." (return (NumberValue (25))),
+        evalTest "25.0" (return (NumberValue (25))),
+        evalTest "25.00" (return (NumberValue (25))),
+        evalTest "25.0_" (return (NumberValue (25))),
+        evalTest "25.0_0" (return (NumberValue (25))),
+        evalTest "25._0" (return (NumberValue (25))),
+        evalTest "25._" (return (NumberValue (25))),
+        evalTest "-5.1_6" (return (NumberValue (-31%6))),
+        evalTest "3e6" (return (NumberValue (3000000))),
+        evalTest "-1.25_142857E-4" (return (NumberValue (-876/7000000))),
         
         --string type
         evalTest "\"\"" (return (StringValue "")),

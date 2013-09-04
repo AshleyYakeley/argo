@@ -1,6 +1,7 @@
 module Data.Argo.Read where
 {
     import Import;
+    import Data.Argo.Number;
     import Data.Argo.Expression;
     import Data.Argo.MonoExpression;
     import Data.Argo.SubValue;
@@ -101,20 +102,11 @@ module Data.Argo.Read where
         };
     } in result where
     {
-        readp :: Read a => ReadP a;
-        readp = readPrec_to_P readPrec minPrec;
-
-        manyMaximal :: ReadP a -> ReadP [a];
-        manyMaximal p =  many1Maximal p <++ return [];
-
-        many1Maximal :: ReadP a -> ReadP [a];
-        many1Maximal p = liftA2 (:) p (manyMaximal p);
-
         readIntercalate :: ReadP () -> ReadP a -> ReadP [a];
         readIntercalate int ra = (do
         {
             first <- ra;
-            rest <- manyMaximal (do
+            rest <- manyMax (do
             {
                 int;
                 ra;
@@ -131,7 +123,7 @@ module Data.Argo.Read where
         readComment = do
         {
             _ <- char '#';
-            _ <- manyMaximal (satisfy (\c -> not (isLineBreak c)));
+            _ <- manyMax (satisfy (\c -> not (isLineBreak c)));
             _ <- satisfy isLineBreak;
             return ();
         };
@@ -200,7 +192,7 @@ module Data.Argo.Read where
         readQuotedString = do
         {
             readWSAndChar '"';
-            s <- manyMaximal readQuotedChar;
+            s <- manyMax readQuotedChar;
             _ <- char '"';
             return s;
         };
@@ -210,7 +202,7 @@ module Data.Argo.Read where
         {
             readWS;
             first <- satisfy firstChar;
-            rest <- manyMaximal readIdentifierChar;
+            rest <- manyMax readIdentifierChar;
             return (first:rest);
         };
 
@@ -218,7 +210,7 @@ module Data.Argo.Read where
         readUnderscored = do
         {
             readWSAndChar '_';
-            typename <- manyMaximal readIdentifierChar;
+            typename <- manyMax readIdentifierChar;
             return (case typename of
             {
                 "" -> \_ -> True;
@@ -230,8 +222,7 @@ module Data.Argo.Read where
         readNumber = do
         {
             readWS;
-            (i :: Integer) <- readp;
-            return (fromIntegral i);
+            readPNumber;
         };
 
         readArrayPattern :: ReadP (ArgoPatternExpression v v);
@@ -239,8 +230,8 @@ module Data.Argo.Read where
         {
             readWSAndChar '[';
             pats <- readIntercalate (readWSAndChar ',') readPattern;
-            _ <- optional (readWSAndChar ',');
-            mextra <- optional (do
+            _ <- optionalMax (readWSAndChar ',');
+            mextra <- optionalMax (do
             {
                 readWSAndChar ';';
                 readPattern;
@@ -270,7 +261,7 @@ module Data.Argo.Read where
         {
             readWSAndChar '{';
             fields <- readIntercalate (readWSAndChar ',') readPatternField;
-            _ <- optional (readWSAndChar ',');
+            _ <- optionalMax (readWSAndChar ',');
             readWSAndChar '}';
             return ( (matchAll fields));
         } where
@@ -278,7 +269,7 @@ module Data.Argo.Read where
             readPatternField :: ReadP (ArgoPatternExpression v (v -> v));
             readPatternField = do
             {
-                marg <- optional (do
+                marg <- optionalMax (do
                 {
                     -- arg <- readExpression;
                     arg <- readConstExpression;
@@ -321,7 +312,7 @@ module Data.Argo.Read where
         readPattern = do
         {
             pat1 <- readSinglePattern;
-            patr <- manyMaximal (do
+            patr <- manyMax (do
             {
                 readWSAndChar '@';
                 readSinglePattern;
@@ -338,7 +329,7 @@ module Data.Argo.Read where
         {
             readWSAndChar '{';
             fields <- readIntercalate (readWSAndChar ',') readField;
-            _ <- optional (readWSAndChar ',');
+            _ <- optionalMax (readWSAndChar ',');
             readWSAndChar '}';
             return (assembleFunction fields);
         } where
@@ -346,7 +337,7 @@ module Data.Argo.Read where
             readField :: ReadP (ArgoPatternExpression v v,ArgoExpression v v);
             readField = do
             {
-                mpat <- optional (do
+                mpat <- optionalMax (do
                 {
                     pat <- readPattern;
                     readWSAndChar ':';
@@ -370,8 +361,8 @@ module Data.Argo.Read where
         {
             readWSAndChar '[';
             exps <- readIntercalate (readWSAndChar ',') readExpression;
-            _ <- optional (readWSAndChar ',');
-            mextra <- optional (do
+            _ <- optionalMax (readWSAndChar ',');
+            mextra <- optionalMax (do
             {
                 readWSAndChar ';';
                 readExpression;
