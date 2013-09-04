@@ -417,7 +417,7 @@ module Data.Argo.Read where
             readWSAndChar '=';
             bindExpr <- readExpression;
             readWSAndChar ',';
-            valExpr <- readActionExpression;
+            valExpr <- readActionContents;
             return ((argoStrictBind patExpr valExpr) <*> bindExpr);
         } <++ do
         {
@@ -425,7 +425,7 @@ module Data.Argo.Read where
             readWSAndString "=!";
             bindExpr <- readActionExpression;
             readWSAndChar ',';
-            valExpr <- readActionExpression;
+            valExpr <- readActionContents;
             return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
         } <++ do
         {
