@@ -5,7 +5,6 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Data.Argo.Number;
     import Data.Argo.SubValue;
     import Data.Argo.Value;
-    import Data.Argo.StdLib.Action;
     import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
     import Codec.Binary.UTF8.String;
@@ -120,9 +119,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
-    stdLib "action" = toValue action;
     stdLib "fail" = toValue (fail :: String -> IO Value);
     stdLib "fix" = toValue fixV;
+    stdLib "action-fix" = toValue (fixIO :: (Value -> IO Value) -> IO Value);
     stdLib s = case fileFunctions s of
     {
         Just r -> r;

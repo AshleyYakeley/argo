@@ -427,7 +427,12 @@ module Data.Argo.Read where
             readWSAndChar ',';
             valExpr <- readActionExpression;
             return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
-        } <++ readActionExpression;
+        } <++ do
+        {
+            expr <- readActionExpression;
+            _ <- optionalMax (readWSAndChar ',');
+            return expr;
+        };
         
         readTerm :: ReadP (ArgoExpression v v);
         readTerm = do

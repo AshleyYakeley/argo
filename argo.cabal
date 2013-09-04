@@ -24,7 +24,6 @@ library
     other-modules:      
         Import
         Data.Argo.Number
-        Data.Argo.StdLib.Action
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
     build-depends:
