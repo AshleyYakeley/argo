@@ -27,6 +27,7 @@ module Data.Argo.Read where
         SubValue v String,
         SubValue v [v],
         SubValue v (v -> v),
+        SubValue v (IO v),
         Show v
     ) => ValueRead v where
     {
@@ -147,6 +148,14 @@ module Data.Argo.Read where
             return ();
         };
 
+        readWSAndString :: String -> ReadP ();
+        readWSAndString s = do
+        {
+            readWS;
+            _ <- string s;
+            return ();
+        };
+
         readEscapedChar :: ReadP Char;
         readEscapedChar = do
         {
@@ -180,6 +189,7 @@ module Data.Argo.Read where
         goodChar ';' = False;
         goodChar '@' = False;
         goodChar '=' = False;
+        goodChar '!' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
@@ -384,6 +394,41 @@ module Data.Argo.Read where
             });
         };
         
+        readActionExpression :: ReadP (ArgoExpression v (IO v));
+        readActionExpression = do
+        {
+            exp <- readExpressionNoLet;
+            return (fmap fromValue exp);
+        };
+
+        argoStrictBind :: ArgoPatternExpression v v -> ArgoExpression v r -> ArgoExpression v (v -> r);
+        argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
+       
+        readActionContents :: ReadP (ArgoExpression v (IO v));
+        readActionContents = do
+        {
+            exp <- readActionExpression;
+            readWSAndChar ',';
+            rest <- readActionContents;
+            return (liftA2 (>>) exp rest);
+        } <++ do
+        {
+            patExpr <- readPattern;
+            readWSAndChar '=';
+            bindExpr <- readExpression;
+            readWSAndChar ',';
+            valExpr <- readActionExpression;
+            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
+        } <++ do
+        {
+            patExpr <- readPattern;
+            readWSAndString "=!";
+            bindExpr <- readActionExpression;
+            readWSAndChar ',';
+            valExpr <- readActionExpression;
+            return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
+        } <++ readActionExpression;
+        
         readTerm :: ReadP (ArgoExpression v v);
         readTerm = do
         {
@@ -405,6 +450,12 @@ module Data.Argo.Read where
             });
         } <++
         fmap (fmap toValue) readArray <++ do
+        {
+            readWSAndString "![";
+            action <- readActionContents;
+            readWSAndChar ']';
+            return (fmap toValue action);
+        } <++ do
         {
             readWSAndChar '(';
             exp <- readExpression;
@@ -447,7 +498,7 @@ module Data.Argo.Read where
             bindExpr <- readExpression;
             readWSAndChar ',';
             valExpr <- readExpression;
-            return (liftA2 (\vmv v -> fromMaybe (errorC "unmatched binding") (vmv v)) (argoBind patExpr valExpr) bindExpr);
+            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
         } <++ readExpressionNoLet;
         
         readExpressionToEnd :: ReadP (ArgoExpression v v);
