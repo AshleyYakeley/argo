@@ -4,6 +4,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
     import Import;
     import Control.Exception;
     import System.Exit;
+    import System.IO.Error;
     import System.FilePath;
     import System.Posix.Types;
     import System.Posix.Env;
@@ -195,6 +196,36 @@ module Data.Argo.StdLib.Process(processFunctions) where
     withEnvironment :: [(String,String)] -> IO Value -> IO Value;
     withEnvironment = withThing getEnvironment setEnvironment;
 
+    instance ToValue UserEntry where
+    {
+        toValue ue = toValue (\s -> case s of
+        {
+            "name" -> toValue (userName ue);
+            "password" -> toValue (userPassword ue);
+            "id" -> toValue (userID ue);
+            "group" -> toValue (userGroupID ue);
+            "gecos" -> toValue (userGecos ue);
+            "home" -> toValue (homeDirectory ue);
+            "shell" -> toValue (userShell ue);
+            _ -> errorC ("not in userentry: " ++ s);
+        });
+    };
+
+    checkUserEntry :: IO UserEntry -> IO (Maybe UserEntry);
+    checkUserEntry f = catch (do
+    {
+        ue <- f;
+        return (Just ue);
+    }) (\(ex :: IOError) -> if ioeGetErrorType ex == doesNotExistErrorType
+     then return Nothing
+     else throw ex);
+
+    getUserEntryForNameMaybe :: String -> IO (Maybe UserEntry);
+    getUserEntryForNameMaybe s = checkUserEntry (getUserEntryForName s);
+
+    getUserEntryForIDMaybe :: UserID -> IO (Maybe UserEntry);
+    getUserEntryForIDMaybe uid = checkUserEntry (getUserEntryForID uid);
+
     processFunctions :: (?context :: String) => String -> Maybe Value;
     processFunctions "wd-get" = Just (toValue getWorkingDirectory);
     processFunctions "wd-with" = Just (toValue withWD);
@@ -205,5 +236,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
     processFunctions "context-run" = Just (toValue runContext);
     processFunctions "exec-start" = Just (toValue startProcess);
     processFunctions "exec-run" = Just (toValue runProcess);
+    processFunctions "userentry-id-get" = Just (toValue getUserEntryForIDMaybe);
+    processFunctions "userentry-name-get" = Just (toValue getUserEntryForNameMaybe);
     processFunctions _ = Nothing;
 }
