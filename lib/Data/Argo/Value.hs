@@ -354,10 +354,14 @@ module Data.Argo.Value where
     
     instance (FromValue a, FromValue b) => FromValue (a,b) where
     {
-        fromValueMaybe v = case fromValueMaybe v of
+        fromValueMaybe v = do
         {
-            [va,vb] -> return (fromValue va,fromValue vb);
-            _ -> typeFail "pair" v;
+            vv <- fromValueMaybe v;
+            case vv of
+            {
+                [va,vb] -> return (fromValue va,fromValue vb);
+                _ -> typeFail "pair" v;
+            };
         };
     };
 }
