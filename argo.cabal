@@ -17,13 +17,13 @@ library
         Data.Argo
         Data.Argo.Expression
         Data.Argo.MonoExpression
-        Data.Argo.SubValue
-        Data.Argo.Read
         Data.Argo.Value
+        Data.Argo.Read
         Data.Argo.StdLib
     other-modules:      
         Import
         Data.Argo.Number
+        Data.Argo.StdLib.Types
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
     build-depends:

@@ -1,9 +1,8 @@
 module Data.Argo(module Data.Argo) where
 {
     import Data.Argo.Number as Data.Argo;
-    import Data.Argo.SubValue as Data.Argo;
-    import Data.Argo.Read as Data.Argo;
     import Data.Argo.Value as Data.Argo;
+    import Data.Argo.Read as Data.Argo;
     import Data.Argo.StdLib as Data.Argo;
     
     import Import;
@@ -11,7 +10,7 @@ module Data.Argo(module Data.Argo) where
     import System.FilePath;
     import System.Directory;
 
-    evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue Value a,?context :: String) => (String -> m (Maybe String)) -> String -> m a;
+    evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue a,?context :: String) => (String -> m (Maybe String)) -> String -> m a;
     evaluateWithStdLib libReader source = do
     {
         val :: Value <- evaluateWithLibs (\s -> case s of
@@ -45,6 +44,6 @@ module Data.Argo(module Data.Argo) where
         };
     };
 
-    evaluateWithDirs :: (FromValue Value a,?context :: String) => [FilePath] -> String -> IO a;
+    evaluateWithDirs :: (FromValue a,?context :: String) => [FilePath] -> String -> IO a;
     evaluateWithDirs dirs = evaluateWithStdLib (lookupArgoFileInDirs dirs);
 }

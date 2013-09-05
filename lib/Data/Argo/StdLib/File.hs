@@ -2,48 +2,12 @@
 module Data.Argo.StdLib.File(fileFunctions) where
 {
     import Import;
-    import Control.Exception;
     import System.FilePath;
     import System.Directory hiding (getCurrentDirectory,setCurrentDirectory);
-    import System.Posix.Types;
-    import System.Posix.Directory;
     import System.Posix.Files;
     import qualified Data.ByteString as B;
-    import Data.Argo.SubValue;
     import Data.Argo.Value;
-
-    withWD :: FilePath -> IO Value -> IO Value;
-    withWD path f = do
-    {
-        oldpath <- getWorkingDirectory;
-        changeWorkingDirectory path;
-        finally f (changeWorkingDirectory oldpath);
-    };
-    
-    instance FromValue Value CUid where
-    {
-        fromValueMaybe v = fmap CUid (fromValueMaybe v);
-    };
-    
-    instance ToValue Value CUid where
-    {
-        toValue (CUid uid) = toValue uid;
-    };
-    
-    instance FromValue Value CGid where
-    {
-        fromValueMaybe v = fmap CGid (fromValueMaybe v);
-    };
-    
-    instance ToValue Value CGid where
-    {
-        toValue (CGid uid) = toValue uid;
-    };
-    
-    instance ToValue Value COff where
-    {
-        toValue (COff uid) = toValue uid;
-    };
+    import Data.Argo.StdLib.Types();
     
     fileType :: FileStatus -> String;
     fileType fs | isRegularFile fs = "file";
@@ -55,7 +19,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileType fs | isCharacterDevice fs = "char";
     fileType _ = "unknown";
     
-    instance ToValue Value FileStatus where
+    instance ToValue FileStatus where
     {
         toValue fs = toValue fsf where
         {
@@ -109,8 +73,6 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileFunctions "directory-create" = Just (toValue (createDirectoryIfMissing True));
     fileFunctions "directory-remove" = Just (toValue removeDirectoryRecursive);
     fileFunctions "directory-contents" = Just (toValue getDirectoryContents);
-    fileFunctions "wd-get" = Just (toValue getWorkingDirectory);
-    fileFunctions "wd-with" = Just (toValue withWD);
     fileFunctions "slink-create" = Just (toValue createSymbolicLink);
     fileFunctions "slink-get" = Just (toValue readSymbolicLink);
     fileFunctions "slink-setown" = Just (toValue setSymbolicLinkOwnerAndGroup);

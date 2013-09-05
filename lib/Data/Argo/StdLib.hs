@@ -3,7 +3,6 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Import;
     import qualified Data.ByteString as B;
     import Data.Argo.Number;
-    import Data.Argo.SubValue;
     import Data.Argo.Value;
     import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
@@ -112,9 +111,6 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "bytes" = toValue bytes;
     stdLib "utf-8" = toValue utf8;
 
-    stdLib "process-start" = toValue startProcess;
-    stdLib "process-run" = toValue runProcess;
-
     stdLib "stdout" = toValue stdoutV;
 
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
@@ -122,11 +118,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "fail" = toValue (fail :: String -> IO Value);
     stdLib "fix" = toValue fixV;
     stdLib "action-fix" = toValue (fixIO :: (Value -> IO Value) -> IO Value);
-    stdLib s = case fileFunctions s of
-    {
-        Just r -> r;
-        Nothing -> errorC ("$\"std\" " ++ (show s) ++ ": not found");
-    };
+    stdLib s | Just r <- fileFunctions s = r;
+    stdLib s | Just r <- processFunctions s = r;
+    stdLib s = errorC ("$\"std\" " ++ (show s) ++ ": not found");
 
     stdLibValue :: (?context :: String) => Value;
     stdLibValue = toValue stdLib;
