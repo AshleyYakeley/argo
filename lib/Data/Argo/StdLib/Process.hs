@@ -95,10 +95,10 @@ module Data.Argo.StdLib.Process(processFunctions) where
     getContext = do
     {
         uid <- getRealUserID;
-        username <- getLoginName;
+--        username <- getLoginName;
         gid <- getRealGroupID;
         euid <- getEffectiveUserID;
-        eusername <- getEffectiveUserName;
+--        eusername <- getEffectiveUserName;
         egid <- getEffectiveGroupID;
         groups <- getGroups;
         env <- getEnvironment;
@@ -106,10 +106,10 @@ module Data.Argo.StdLib.Process(processFunctions) where
         return (\s -> case s of
         {
             "user" -> Just (toValue uid);
-            "username" -> Just (toValue username);
+--            "username" -> Just (toValue username);
             "group" -> Just (toValue gid);
             "effective-user" -> Just (toValue euid);
-            "effective-username" -> Just (toValue eusername);
+--            "effective-username" -> Just (toValue eusername);
             "effective-group" -> Just (toValue egid);
             "groups" -> Just (toValue groups);
             "environment" -> Just (toValue env);
