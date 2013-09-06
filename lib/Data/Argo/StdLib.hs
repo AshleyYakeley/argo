@@ -71,9 +71,6 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
         };
     };
 
-    stdoutV :: String -> IO ();
-    stdoutV = hPutStr stdout;
-
     eq :: Value -> Value -> Bool;
     eq NullValue NullValue = True;
     eq (BoolValue a) (BoolValue b) = a == b;
@@ -111,7 +108,8 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "bytes" = toValue bytes;
     stdLib "utf-8" = toValue utf8;
 
-    stdLib "stdout" = toValue stdoutV;
+    stdLib "stdout" = toValue (hPutStr stdout);
+    stdLib "stderr" = toValue (hPutStr stderr);
 
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);

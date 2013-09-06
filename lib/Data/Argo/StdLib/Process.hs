@@ -5,6 +5,8 @@ module Data.Argo.StdLib.Process(processFunctions) where
     import Control.Exception;
     import System.Exit;
     import System.IO.Error;
+    import System.IO (stderr);
+    import System.IO.UTF8;
     import System.FilePath;
     import System.Posix.Types;
     import System.Posix.Env;
@@ -173,11 +175,16 @@ module Data.Argo.StdLib.Process(processFunctions) where
      (String -> Value) -> IO () -> IO ();
     runContext args f = do
     {
-        pid <- forkProcess (do
+        pid <- forkProcess (catch (do
         {
             setContext args;
             f;
-        });
+        })
+        (\(ex :: SomeException) -> do
+        {
+            hPutStrLn stderr (show ex);
+            throw ex;
+        }));
         ps <- waitProcess pid;
         failProcess ps;
     };
