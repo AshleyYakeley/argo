@@ -5,9 +5,6 @@ module Data.Argo.StdLib.Process(processFunctions) where
     import Control.Exception;
     import System.Exit;
     import System.IO.Error;
-    import System.IO (stderr);
-    import System.IO.UTF8;
-    import System.FilePath;
     import System.Posix.Types;
     import System.Posix.Env;
     import System.Posix.Directory;
@@ -97,9 +94,9 @@ module Data.Argo.StdLib.Process(processFunctions) where
     getContext :: (?context::String) => IO (String -> Maybe Value);
     getContext = do
     {
-        uid <- getRealUserID;
---        username <- getLoginName;
-        gid <- getRealGroupID;
+        ruid <- getRealUserID;
+--        rusername <- getLoginName;
+        rgid <- getRealGroupID;
         euid <- getEffectiveUserID;
 --        eusername <- getEffectiveUserName;
         egid <- getEffectiveGroupID;
@@ -108,38 +105,28 @@ module Data.Argo.StdLib.Process(processFunctions) where
         wd <- getWorkingDirectory;
         return (\s -> case s of
         {
-            "user" -> Just (toValue uid);
---            "username" -> Just (toValue username);
-            "group" -> Just (toValue gid);
-            "effective-user" -> Just (toValue euid);
---            "effective-username" -> Just (toValue eusername);
-            "effective-group" -> Just (toValue egid);
+            "real-user" -> Just (toValue ruid);
+--            "real-username" -> Just (toValue rusername);
+            "real-group" -> Just (toValue rgid);
+            "user" -> Just (toValue euid);
+--            "username" -> Just (toValue eusername);
+            "group" -> Just (toValue egid);
             "groups" -> Just (toValue groups);
             "environment" -> Just (toValue env);
             "wd" -> Just (toValue wd);
             _ -> Nothing;
         });
     };
-    
+
     setContext :: (?context :: String) => (String -> Value) -> IO ();
     setContext args = do
     {
         case fromValue (args "user") of
         {
-            Just uid -> setUserID uid;
-            Nothing -> return ();
-        };
-        case fromValue (args "group") of
-        {
-            Just gid -> setGroupID gid;
-            Nothing -> return ();
-        };
-        case fromValue (args "effective-user") of
-        {
             Just uid -> setEffectiveUserID uid;
             Nothing -> return ();
         };
-        case fromValue (args "effective-group") of
+        case fromValue (args "group") of
         {
             Just gid -> setEffectiveGroupID gid;
             Nothing -> return ();
@@ -155,53 +142,39 @@ module Data.Argo.StdLib.Process(processFunctions) where
             Nothing -> return ();
         };
     };
-    
+
     withContext :: (?context :: String) =>
      (String -> Value) -> IO Value -> IO Value;
-    withContext args f = let
+    withContext args f0 = let
     {
-        ff = case fromValue (args "wd") of
-        {
-            Just wd -> withWD wd f;
-            Nothing -> f;
-        };
-    } in case fromValue (args "environment") of
-    {
-        Just env -> withEnvironment env ff;
-        Nothing -> ff;
-    };
-    
-    runContext :: (?context :: String) =>
-     (String -> Value) -> IO () -> IO ();
-    runContext args f = do
-    {
-        pid <- forkProcess (catch (do
-        {
-            setContext args;
-            f;
-        })
-        (\(ex :: SomeException) -> do
-        {
-            hPutStrLn stderr (show ex);
-            throw ex;
-        }));
-        ps <- waitProcess pid;
-        failProcess ps;
-    };
+        f1 = withThing getEnvironment setEnvironment (fromValue (args "environment")) f0;
+        -- low-privilege user must be "inside" group and WD
+        f2 = withThingCheck getEffectiveUserID setEffectiveUserID (fromValue (args "user")) f1;
+        f3 = withThingCheck getEffectiveGroupID setEffectiveGroupID (fromValue (args "group")) f2;
+        f4 = withThingCheck getWorkingDirectory changeWorkingDirectory (fromValue (args "wd")) f3;
+    } in f4;
 
-    withThing :: IO a -> (a -> IO ()) -> a -> IO Value -> IO Value;
-    withThing getter setter thing f = do
+    withThing :: IO a -> (a -> IO ()) -> Maybe a -> IO Value -> IO Value;
+    withThing _getter _setter Nothing f = f;
+    withThing getter setter (Just thing) f = do
     {
         oldthing <- getter;
         setter thing;
         finally f (setter oldthing);
     };
 
-    withWD :: FilePath -> IO Value -> IO Value;
-    withWD = withThing getWorkingDirectory changeWorkingDirectory;
-
-    withEnvironment :: [(String,String)] -> IO Value -> IO Value;
-    withEnvironment = withThing getEnvironment setEnvironment;
+    withThingCheck :: (Eq a) => IO a -> (a -> IO ()) -> Maybe a -> IO Value -> IO Value;
+    withThingCheck _getter _setter Nothing f = f;
+    withThingCheck getter setter (Just thing) f = do
+    {
+        oldthing <- getter;
+        if thing == oldthing then f
+        else do
+        {
+            setter thing;
+            finally f (setter oldthing);
+        };
+    };
 
     instance ToValue UserEntry where
     {
@@ -234,13 +207,8 @@ module Data.Argo.StdLib.Process(processFunctions) where
     getUserEntryForIDMaybe uid = checkUserEntry (getUserEntryForID uid);
 
     processFunctions :: (?context :: String) => String -> Maybe Value;
-    processFunctions "wd-get" = Just (toValue getWorkingDirectory);
-    processFunctions "wd-with" = Just (toValue withWD);
-    processFunctions "environment-get" = Just (toValue getEnvironment);
-    processFunctions "environment-with" = Just (toValue withEnvironment);
     processFunctions "context-get" = Just (toValue getContext);
     processFunctions "context-with" = Just (toValue withContext);
-    processFunctions "context-run" = Just (toValue runContext);
     processFunctions "exec-start" = Just (toValue startProcess);
     processFunctions "exec-run" = Just (toValue runProcess);
     processFunctions "userentry-id-get" = Just (toValue getUserEntryForIDMaybe);

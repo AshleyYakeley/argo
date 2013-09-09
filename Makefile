@@ -17,8 +17,12 @@ test: build
 haddock: configure
 	cabal haddock
 
-install: build test haddock
-	cabal install --user --enable-library-profiling --enable-executable-profiling
+copy: build test haddock
+	cabal copy
+
+install:
+	-ghc-pkg unregister yops
+	cabal install --user --ghc-options=-Werror --enable-library-profiling --enable-executable-profiling --enable-tests
 
 sdist: clean configure
 	cabal sdist
@@ -26,4 +30,4 @@ sdist: clean configure
 # switch off intermediate file deletion
 .SECONDARY:
 
-.PHONY: default clean configure build haddock install test sdist
+.PHONY: default clean configure build haddock copy install test sdist
