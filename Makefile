@@ -20,7 +20,13 @@ haddock: configure
 copy: build test haddock
 	cabal copy
 
-install:
+~/.local/share/gtksourceview-2.0/language-specs/argo.lang: argo.lang
+	mkdir -p ~/.local/share/gtksourceview-2.0/language-specs
+	cp $< $@
+
+install-lang: ~/.local/share/gtksourceview-2.0/language-specs/argo.lang
+
+install: install-lang
 	-ghc-pkg unregister yops
 	cabal install --user --ghc-options=-Werror --enable-library-profiling --enable-executable-profiling --enable-tests
 
@@ -30,4 +36,4 @@ sdist: clean configure
 # switch off intermediate file deletion
 .SECONDARY:
 
-.PHONY: default clean configure build haddock copy install test sdist
+.PHONY: default clean configure build haddock copy install install-lang test sdist

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language id="argo" _name="Argo" version="2.0" _section="Scripts">
+  <metadata>
+    <property name="mimetypes">text/x-argo</property>
+    <property name="globs">*.argo</property>
+    <property name="line-comment-start">#</property>
+  </metadata>
+  <styles>
+    <style id="string"          _name="String"              map-to="def:string"/>
+    <style id="special-char"    _name="Special Character"   map-to="def:special-char"/>
+    <style id="identifier"      _name="Identifier"          map-to="def:identifier"/>
+    <style id="libref"          _name="Library Reference"   map-to="def:preprocessor"/>
+    <style id="thisref"         _name="Special Reference"   map-to="def:preprocessor" />
+  </styles>
+  <definitions>
+
+    <context id="escape" style-ref="def:special-char">
+      <match>\\.</match>
+    </context>
+
+    <context id="string" style-ref="string">
+      <start>"</start>
+      <end>"</end>
+      <include>
+        <context ref="escape"/>
+      </include>
+    </context>
+
+    <context id="identifier" style-ref="identifier">
+      <match>\b[[:alpha:]][^#\\:"{}\[\](),;@=!$[:space:]]*</match>
+    </context>
+
+    <context id="libref" style-ref="libref">
+      <start>\$"</start>
+      <end>"</end>
+      <include>
+        <context ref="escape"/>
+      </include>
+    </context>
+
+    <context id="thisref" style-ref="thisref">
+      <match>\$[[:alpha:]][^#\\:"{}\[\](),;@=!$[:space:]]*</match>
+    </context>
+
+    <context id="argo" class="no-spell-check">
+      <include>
+        <context ref="def:shebang"/>
+        <context ref="def:shell-like-comment"/>
+        <context ref="string"/>
+        <context ref="identifier"/>
+        <context ref="libref"/>
+        <context ref="thisref"/>
+      </include>
+    </context>
+
+  </definitions>
+</language>

@@ -175,6 +175,7 @@ module Data.Argo.Read where
         goodChar '@' = False;
         goodChar '=' = False;
         goodChar '!' = False;
+        goodChar '$' = False;
         goodChar c = not (isSpace c);
         
         firstChar :: Char -> Bool;
