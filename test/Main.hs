@@ -97,6 +97,10 @@ module Main where
         evalTest "{1,}" (return (FunctionValue id)),
         evalTest "{null,}" (return (FunctionValue id)),
         evalTest "{null:null,}" (return (FunctionValue id)),
+        evalTest "{{_}: null}" (return (FunctionValue id)),
+        evalTest "{{a}: null}" (return (FunctionValue id)),
+        evalTest "{{{\"a\":a}}: null}" (return (FunctionValue id)),
+        evalTest "{{{\"a\":a,\"b\":b}}: null}" (return (FunctionValue id)),
 
         -- function application
 --        evalTest "null 45" (fail "non-function application"),

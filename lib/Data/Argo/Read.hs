@@ -266,13 +266,13 @@ module Data.Argo.Read where
             readPatternField :: Parser (ArgoPatternExpression (Value -> Value));
             readPatternField = do
             {
-                arg <- option (toValue ()) (do
+                arg <- option (toValue ()) (try (do
                 {
                     -- arg <- readExpression;
                     arg <- readConstExpression;
                     readCharAndWS ':';
                     return arg;
-                });
+                }));
                 pat <- readPattern;
                 return (subPattern (\f -> Just (f arg)) pat);
             };
