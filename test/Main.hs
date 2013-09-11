@@ -16,7 +16,7 @@ module Main where
 
     evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
     evalTestWithLibs libs s mv = let {?context = "test"} in
-     pureTest s (diff (show mv) (show (evaluateWithStdLib "test" (libFinder libs) s :: FailM Value)));
+     pureTest s (diff (show mv) (show (evaluateWithStdLib (libFinder libs) s :: FailM Value)));
 
     evalTest :: String -> FailM Value -> Test;
     evalTest = evalTestWithLibs [];

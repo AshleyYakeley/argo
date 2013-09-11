@@ -22,15 +22,15 @@ module Data.Argo.Read where
     type ArgoPatternExpression q = MonoPatternExpression String Value q ();
 
     -- The recursive library lookup magic happens here.
-    evaluateWithLibs :: forall m. (Applicative m,MonadFix m,?context::String) => String -> (String -> m (Maybe (Either String Value))) -> String -> m Value;
-    evaluateWithLibs sourcename libReader source = mdo
+    evaluateWithLibs :: forall m. (Applicative m,MonadFix m,?context::String) => (String -> m (Maybe (Either String Value))) -> String -> m Value;
+    evaluateWithLibs libReader source = mdo
     {
-        (v,dict) <- runStateT (evaluateSource sourcename (lookup dict) source) (\_ -> Nothing);
+        (v,dict) <- runStateT (evaluateSource (lookup dict) source) (\_ -> Nothing);
         return v;
     } where
     {
-        lookup :: (?context::String) => (String -> Maybe Value) -> String -> StateT (String -> Maybe Value) m Value;
-        lookup dict libname = let {?context = ?context ++ ": $" ++ (show libname)} in do
+        lookup :: (String -> Maybe Value) -> String -> StateT (String -> Maybe Value) m Value;
+        lookup dict libname = let {?context = libname} in do
         {
             curdict <- Control.Monad.Trans.State.get;
             case curdict libname of
@@ -46,7 +46,7 @@ module Data.Argo.Read where
                             put (\libname' -> if libname == libname' then Just r else curdict libname');
                             r <- case lib of
                             {
-                                Left libtext -> evaluateSource libname (lookup dict) libtext;
+                                Left libtext -> evaluateSource (lookup dict) libtext;
                                 Right libval -> return libval;
                             };
                             return ();
@@ -63,28 +63,27 @@ module Data.Argo.Read where
         };
     };
 
-    evaluateSource :: (Applicative m,MonadFix m,?context::String) => String -> (String -> m Value) -> String -> m Value;
-    evaluateSource sourcename libLookup s = mfix (\this -> let
+    evaluateSource :: (Applicative m,MonadFix m,?context::String) => (String -> m Value) -> String -> m Value;
+    evaluateSource libLookup s = mfix (\this -> let
     {
         resolve (SymbolReference sym) = failC ("undefined: " ++ sym);
         resolve (LibReference libname) = libLookup libname;
         resolve ThisReference = return this;
     } in do
     {
-        expr <- readText sourcename s;
+        expr <- readText s;
         Identity r <- monoEvaluateExpression resolve expr;
         return r;
     });
     
-    readText :: forall m. (Monad m,?context::String) => String -> String -> m (ArgoExpression Value);
-    readText sourcename input = let
+    readText :: forall m. (Monad m,?context::String) => String -> m (ArgoExpression Value);
+    readText input = let
     {
-        parseResult = parse readExpressionToEnd sourcename input;
-        result = let
-        {?context = ?context ++ ": parser"} in case parseResult of
+        parseResult = parse readExpressionToEnd ?context input;
+        result = case parseResult of
         {
             Right a -> return a;
-            Left err -> failC (show err);
+            Left err -> fail (show err);
         };
     } in result where
     {

@@ -2,7 +2,6 @@ module Main where
 {
     import Prelude hiding (getContents, readFile);
     import Data.Argo;
-    import Data.Maybe;
     import System.Environment;
     import System.IO.UTF8;
 
@@ -29,7 +28,7 @@ module Main where
             };
         };
         s <- getter;
-        r <- let {?context = filename} in evaluateWithDirs (fromMaybe filename mFilePath) dirs s;
+        r <- let {?context = filename} in evaluateWithDirs dirs s;
         _ :: Value <- r appArgs;
         return ();
     };

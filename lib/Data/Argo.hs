@@ -10,10 +10,10 @@ module Data.Argo(module Data.Argo) where
     import System.FilePath;
     import System.Directory;
 
-    evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue a,?context :: String) => String -> (String -> m (Maybe String)) -> String -> m a;
-    evaluateWithStdLib sourcename libReader source = do
+    evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue a,?context::String) => (String -> m (Maybe String)) -> String -> m a;
+    evaluateWithStdLib libReader source = do
     {
-        val :: Value <- evaluateWithLibs sourcename (\s -> case s of
+        val :: Value <- evaluateWithLibs (\s -> case s of
         {
             "std" -> return (Just (Right stdLibValue));
             _ -> fmap (fmap Left) (libReader s);
@@ -44,6 +44,6 @@ module Data.Argo(module Data.Argo) where
         };
     };
 
-    evaluateWithDirs :: (FromValue a,?context :: String) => String -> [FilePath] -> String -> IO a;
-    evaluateWithDirs sourcename dirs = evaluateWithStdLib sourcename (lookupArgoFileInDirs dirs);
+    evaluateWithDirs :: (FromValue a,?context::String) => [FilePath] -> String -> IO a;
+    evaluateWithDirs dirs = evaluateWithStdLib (lookupArgoFileInDirs dirs);
 }
