@@ -16,7 +16,7 @@ module Main where
 
     evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
     evalTestWithLibs libs s mv = let {?context = "test"} in
-     pureTest s (diff (show mv) (show (evaluateWithStdLib (libFinder libs) s :: FailM Value)));
+     pureTest s (diff (show mv) (show (evaluateWithStdLib "test" (libFinder libs) s :: FailM Value)));
 
     evalTest :: String -> FailM Value -> Test;
     evalTest = evalTestWithLibs [];
@@ -94,6 +94,9 @@ module Main where
         evalTest "{ab:a}" (fail "test: undefined: a"),
         evalTest "{1:1,2:2}" (return (FunctionValue id)),
         evalTest "{1}" (return (FunctionValue id)),
+        evalTest "{1,}" (return (FunctionValue id)),
+        evalTest "{null,}" (return (FunctionValue id)),
+        evalTest "{null:null,}" (return (FunctionValue id)),
 
         -- function application
 --        evalTest "null 45" (fail "non-function application"),
@@ -152,6 +155,8 @@ module Main where
         patternTests "{1:2,3:4}" ["{1:2,3:4}"] ["null","false","0","\"\"","[]","{}","{1:3}","{1:4}","{1:null}","{2:2}"],
         patternTests "{1:_number}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "{_number}" ["{null:2}","{null:3}","{null:4}","{2}","{3}","{4}"] ["{1:2}","{1:3}","{1:4}","null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
+        patternTests "{1:_number,}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
+        patternTests "{_number,}" ["{null:2}","{null:3}","{null:4}","{2}","{3}","{4}"] ["{1:2}","{1:3}","{1:4}","null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
         patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]
     ] ++

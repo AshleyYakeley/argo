@@ -22,8 +22,6 @@ module Import(module Import) where
     import Data.Ratio as Import;
     import Text.Show as Import (Show(..));
     import Text.Read as Import (Read(..),readListPrecDefault,readPrec_to_P,readP_to_Prec,readMaybe);
-    import Text.ParserCombinators.ReadP as Import(ReadP,char,string,(<++),get,satisfy,skipSpaces,eof,readP_to_S);
-    import Text.ParserCombinators.ReadPrec as Import(minPrec);
     import Foreign.C.Types as Import;
     
     -- transformers
@@ -39,13 +37,4 @@ module Import(module Import) where
     
     -- bytestring
     import Data.ByteString as Import (ByteString);
-
-    optionalMax :: ReadP a -> ReadP (Maybe a);
-    optionalMax p = (fmap Just p) <++ return Nothing;
-
-    manyMax :: ReadP a -> ReadP [a];
-    manyMax p =  many1Max p <++ return [];
-
-    many1Max :: ReadP a -> ReadP [a];
-    many1Max p = liftA2 (:) p (manyMax p);
 }

@@ -1,6 +1,12 @@
 module Data.Argo.Number where
 {
-    import Import;
+    import Import hiding (many,(<|>));
+    import Text.Parsec;
+    import Text.Parsec.String;
+    import Text.Parsec.Pos(updatePosChar);
+    
+    satisfyMaybe :: (Stream s m Char) => (Char -> Maybe a) -> ParsecT s u m a;
+    satisfyMaybe = tokenPrim (\c -> show [c]) (\pos c _cs -> updatePosChar pos c);
     
     decimalDigit :: Char -> Maybe Int;
     decimalDigit c | (c >= '0') && (c <= '9') = Just ((fromEnum c) - (fromEnum '0'));
@@ -25,33 +31,36 @@ module Data.Argo.Number where
         _ -> (show n) ++ "/" ++ (show d);
     };
     
-    readPNumber :: ReadP Number;
+    readPNumber :: Parser Number;
     readPNumber = readSigned readUnsignedNumber where
     {
-        readUnsignedNumber :: ReadP Number;
-        readUnsignedNumber = readFraction <++ readDecimal;
-    
-        readFraction :: ReadP Rational;
-        readFraction = do
+        readUnsignedNumber :: Parser Number;
+        readUnsignedNumber = do
         {
             n <- readDigits;
+            (readFractionRest n) <|> (readDecimalRest n);
+        };
+    
+        readFractionRest :: Integer -> Parser Rational;
+        readFractionRest n = do
+        {
             _ <- char '/';
             d <- readDigits;
             return (n % d);
         };
         
-        readSigned :: (Num a) => ReadP a -> ReadP a;
+        readSigned :: (Num a) => Parser a -> Parser a;
         readSigned reader = do
         {
             _ <- char '-';
             n <- reader;
             return (negate n);
-        } <++ reader;
+        } <|> reader;
         
-        readInteger :: ReadP Integer;
+        readInteger :: Parser Integer;
         readInteger = readSigned readDigits;
         
-        readExponent :: ReadP Rational;
+        readExponent :: Parser Rational;
         readExponent = do
         {
             _ <- satisfy (\c -> c == 'E' || c == 'e');
@@ -67,18 +76,17 @@ module Data.Argo.Number where
         repeatingDigits [] = 0;
         repeatingDigits dd = (assembleDigits dd) % (basis dd - 1);
         
-        readDecimal :: ReadP Rational;
-        readDecimal = do
+        readDecimalRest :: Integer -> Parser Rational;
+        readDecimalRest whole = do
         {
-            whole <- readDigits;
-            mdecimal <- optionalMax (do
+            mdecimal <- optionMaybe (do
             {
                 _ <- char '.';
-                fdigits <- manyMax readDigit;
-                mrepeating <- optionalMax (do
+                fdigits <- many readDigit;
+                mrepeating <- optionMaybe (do
                 {
                     _ <- char '_';
-                    rdigits <- manyMax readDigit;
+                    rdigits <- many readDigit;
                     return (repeatingDigits rdigits);
                 });
                 let
@@ -93,7 +101,7 @@ module Data.Argo.Number where
                 };
                 return decimal;
             });
-            mexp <- optionalMax readExponent;
+            mexp <- optionMaybe readExponent;
             let
             {
                 rwhole = fromInteger whole;
@@ -119,22 +127,14 @@ module Data.Argo.Number where
             assembleDigits' r (i:ii) = assembleDigits' (r * 10 + i) ii;
         };
     
-        readDigits :: ReadP Integer;
+        readDigits :: Parser Integer;
         readDigits = do
         {
-            digits <- many1Max readDigit;
+            digits <- many1 readDigit;
             return (assembleDigits digits);
         };
         
-        readDigit :: ReadP Integer;
-        readDigit = do
-        {
-            c <- get;
-            case decimalDigit c of
-            {
-                Just i -> return (toInteger i);
-                Nothing -> mzero;
-            };
-        };
+        readDigit :: Parser Integer;
+        readDigit = satisfyMaybe ((fmap toInteger) . decimalDigit);
     };
 }

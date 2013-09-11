@@ -22,13 +22,14 @@ module Main where
         let
         {
             (dirs,mFilePath,appArgs) = interpretArgs args;
+            (getter,filename) = case mFilePath of
+            {
+                Nothing -> (getContents,"stdin");
+                Just filePath -> (readFile filePath,filePath);
+            };
         };
-        s <- case mFilePath of
-        {
-            Nothing -> getContents;
-            Just filePath -> readFile filePath;
-        };
-        r <- let {?context = fromMaybe "stdin" mFilePath} in evaluateWithDirs dirs s;
+        s <- getter;
+        r <- let {?context = filename} in evaluateWithDirs (fromMaybe filename mFilePath) dirs s;
         _ :: Value <- r appArgs;
         return ();
     };

@@ -1,11 +1,13 @@
 module Data.Argo.Read where
 {
-    import Import;
+    import Import hiding (many,(<|>),optional);
+    import qualified Control.Monad.Trans.State;
+    import Text.Parsec.String;
+    import Text.Parsec;
     import Data.Argo.Number;
     import Data.Argo.Expression;
     import Data.Argo.MonoExpression;
     import Data.Argo.Value;
-    import qualified Control.Monad.Trans.State;
     
     data Reference = ThisReference | LibReference String | SymbolReference String deriving (Eq);
    
@@ -20,10 +22,10 @@ module Data.Argo.Read where
     type ArgoPatternExpression q = MonoPatternExpression String Value q ();
 
     -- The recursive library lookup magic happens here.
-    evaluateWithLibs :: forall m. (Applicative m,MonadFix m,?context::String) => (String -> m (Maybe (Either String Value))) -> String -> m Value;
-    evaluateWithLibs libReader source = mdo
+    evaluateWithLibs :: forall m. (Applicative m,MonadFix m,?context::String) => String -> (String -> m (Maybe (Either String Value))) -> String -> m Value;
+    evaluateWithLibs sourcename libReader source = mdo
     {
-        (v,dict) <- runStateT (evaluateSource (lookup dict) source) (\_ -> Nothing);
+        (v,dict) <- runStateT (evaluateSource sourcename (lookup dict) source) (\_ -> Nothing);
         return v;
     } where
     {
@@ -44,7 +46,7 @@ module Data.Argo.Read where
                             put (\libname' -> if libname == libname' then Just r else curdict libname');
                             r <- case lib of
                             {
-                                Left libtext -> evaluateSource (lookup dict) libtext;
+                                Left libtext -> evaluateSource libname (lookup dict) libtext;
                                 Right libval -> return libval;
                             };
                             return ();
@@ -61,91 +63,92 @@ module Data.Argo.Read where
         };
     };
 
-    evaluateSource :: (Applicative m,MonadFix m,?context::String) => (String -> m Value) -> String -> m Value;
-    evaluateSource libLookup s = mfix (\this -> let
+    evaluateSource :: (Applicative m,MonadFix m,?context::String) => String -> (String -> m Value) -> String -> m Value;
+    evaluateSource sourcename libLookup s = mfix (\this -> let
     {
         resolve (SymbolReference sym) = failC ("undefined: " ++ sym);
         resolve (LibReference libname) = libLookup libname;
         resolve ThisReference = return this;
     } in do
     {
-        expr <- readText s;
+        expr <- readText sourcename s;
         Identity r <- monoEvaluateExpression resolve expr;
         return r;
     });
     
-    readText :: forall m. (Monad m,?context::String) => String -> m (ArgoExpression Value);
-    readText input = let
+    readText :: forall m. (Monad m,?context::String) => String -> String -> m (ArgoExpression Value);
+    readText sourcename input = let
     {
-        parseResult = readP_to_S readExpressionToEnd input;
+        parseResult = parse readExpressionToEnd sourcename input;
         result = let
         {?context = ?context ++ ": parser"} in case parseResult of
         {
-            [(a,"")] -> return a;
-            [(_,s)] -> failC ("unrecognised: " ++ s);
-            [] -> failC "invalid";
-            _:_ -> failC "ambiguous";
+            Right a -> return a;
+            Left err -> failC (show err);
         };
     } in result where
     {
-        readIntercalate :: ReadP () -> ReadP a -> ReadP [a];
-        readIntercalate int ra = (do
+        readSeparated :: Parser () -> Parser a -> Parser [a];
+        readSeparated int ra = (do
         {
             first <- ra;
-            rest <- manyMax (do
+            mrest <- optionMaybe (do
             {
                 int;
-                ra;
+                -- allow extra comma at end
+                readSeparated int ra;
             });
-            return (first:rest);
-        }) <++ (return []);
+            return (first:fromMaybe [] mrest);
+        }) <|> (return []);
+
+        readCommaSeparated :: Parser a -> Parser [a];
+        readCommaSeparated = readSeparated (readCharAndWS ',');
 
         isLineBreak :: Char -> Bool;
         isLineBreak '\n' =  True;
         isLineBreak '\r' =  True;
         isLineBreak _ = False;
 
-        readComment :: ReadP ();
+        readComment :: Parser ();
         readComment = do
         {
             _ <- char '#';
-            _ <- manyMax (satisfy (\c -> not (isLineBreak c)));
+            _ <- many (satisfy (\c -> not (isLineBreak c)));
             _ <- satisfy isLineBreak;
             return ();
         };
 
-        readWS :: ReadP ();
+        readWS :: Parser ();
         readWS = do
         {
-            skipSpaces;
-            (do
+            spaces;
+            optional (do
             {
                 readComment;
                 readWS;
-            }) <++ (return ());
+            });
         };
 
-        readWSAndChar :: Char -> ReadP ();
-        readWSAndChar c = do
+        readCharAndWS :: Char -> Parser ();
+        readCharAndWS c = do
         {
-            readWS;
             _ <- char c;
-            return ();
-        };
-
-        readWSAndString :: String -> ReadP ();
-        readWSAndString s = do
-        {
             readWS;
+        };
+
+        readStringAndWS :: String -> Parser ();
+        readStringAndWS s = do
+        {
             _ <- string s;
+            readWS;
             return ();
         };
 
-        readEscapedChar :: ReadP Char;
+        readEscapedChar :: Parser Char;
         readEscapedChar = do
         {
             _ <- char '\\';
-            c <- get;
+            c <- anyToken;
             case c of
             {
                 'n' -> return '\n';
@@ -156,8 +159,8 @@ module Data.Argo.Read where
             };
         };
 
-        readQuotedChar :: ReadP Char;
-        readQuotedChar = readEscapedChar <++ (satisfy ('"' /=));
+        readQuotedChar :: Parser Char;
+        readQuotedChar = readEscapedChar <|> (satisfy ('"' /=));
 
         goodChar :: Char -> Bool;
         goodChar '#' = False;
@@ -181,32 +184,32 @@ module Data.Argo.Read where
         firstChar :: Char -> Bool;
         firstChar = isAlpha;
         
-        readIdentifierChar :: ReadP Char;
-        readIdentifierChar = readEscapedChar <++ (satisfy goodChar);
+        readIdentifierChar :: Parser Char;
+        readIdentifierChar = readEscapedChar <|> (satisfy goodChar);
 
-        readQuotedString :: ReadP String;
+        readQuotedString :: Parser String;
         readQuotedString = do
         {
-            readWSAndChar '"';
-            s <- manyMax readQuotedChar;
             _ <- char '"';
+            s <- many readQuotedChar;
+            readCharAndWS '"';
             return s;
         };
 
-        readIdentifier :: ReadP String;
+        readIdentifier :: Parser String;
         readIdentifier = do
         {
-            readWS;
             first <- satisfy firstChar;
-            rest <- manyMax readIdentifierChar;
+            rest <- many readIdentifierChar;
+            readWS;
             return (first:rest);
         };
 
-        readUnderscored :: ReadP (Value -> Bool);
+        readUnderscored :: Parser (Value -> Bool);
         readUnderscored = do
         {
-            readWSAndChar '_';
-            typename <- manyMax readIdentifierChar;
+            readCharAndWS '_';
+            typename <- many readIdentifierChar;
             return (case typename of
             {
                 "" -> \_ -> True;
@@ -214,25 +217,25 @@ module Data.Argo.Read where
             });
         };
 
-        readNumber :: ReadP Rational;
+        readNumber :: Parser Rational;
         readNumber = do
         {
+            r <- readPNumber;
             readWS;
-            readPNumber;
+            return r;
         };
 
-        readArrayPattern :: ReadP (ArgoPatternExpression Value);
+        readArrayPattern :: Parser (ArgoPatternExpression Value);
         readArrayPattern = do
         {
-            readWSAndChar '[';
-            pats <- readIntercalate (readWSAndChar ',') readPattern;
-            _ <- optionalMax (readWSAndChar ',');
-            mextra <- optionalMax (do
+            readCharAndWS '[';
+            pats <- readCommaSeparated readPattern;
+            mextra <- optionMaybe (do
             {
-                readWSAndChar ';';
+                readCharAndWS ';';
                 readPattern;
             });
-            readWSAndChar ']';
+            readCharAndWS ']';
             return (subPattern fromValueMaybe (listPat mextra pats));
         } where
         {
@@ -244,7 +247,7 @@ module Data.Argo.Read where
             listPat (Just extra) [] = subPattern (Just . toValue) extra;
         };
 
-        readConstExpression :: ReadP Value;
+        readConstExpression :: Parser Value;
         readConstExpression = do
         {
             exp <- readExpression;
@@ -252,41 +255,40 @@ module Data.Argo.Read where
             return v;
         };
 
-        readFunctionPattern :: ReadP (ArgoPatternExpression (Value -> Value));
+        readFunctionPattern :: Parser (ArgoPatternExpression (Value -> Value));
         readFunctionPattern = do
         {
-            readWSAndChar '{';
-            fields <- readIntercalate (readWSAndChar ',') readPatternField;
-            _ <- optionalMax (readWSAndChar ',');
-            readWSAndChar '}';
+            readCharAndWS '{';
+            fields <- readCommaSeparated readPatternField;
+            readCharAndWS '}';
             return ( (matchAll fields));
         } where
         {
-            readPatternField :: ReadP (ArgoPatternExpression (Value -> Value));
+            readPatternField :: Parser (ArgoPatternExpression (Value -> Value));
             readPatternField = do
             {
-                marg <- optionalMax (do
+                arg <- option (toValue ()) (do
                 {
                     -- arg <- readExpression;
                     arg <- readConstExpression;
-                    readWSAndChar ':';
+                    readCharAndWS ':';
                     return arg;
                 });
                 pat <- readPattern;
-                return (subPattern (\f -> Just (f (fromMaybe (toValue ()) marg))) pat);
+                return (subPattern (\f -> Just (f arg)) pat);
             };
         };
 
-        readSinglePattern :: ReadP (ArgoPatternExpression Value);
+        readSinglePattern :: Parser (ArgoPatternExpression Value);
         readSinglePattern = do
         {
             s <- readQuotedString;
             return (patternMatch (isValue s));
-        } <++ do
+        } <|> do
         {
             n <- readNumber;
             return (patternMatch (isValue n));
-        } <++ do
+        } <|> do
         {
             i <- readIdentifier;
             return (case i of
@@ -296,21 +298,21 @@ module Data.Argo.Read where
                 "false" -> patternMatch (isValue False);
                 _ -> monoPatternSymbol i;
             });
-        } <++ do
+        } <|> do
         {
             match <- readUnderscored;
             return (patternMatch match);
-        } <++
-        readArrayPattern <++
+        } <|>
+        readArrayPattern <|>
         fmap (subPattern fromValueMaybe) readFunctionPattern;
 
-        readPattern :: ReadP (ArgoPatternExpression Value);
+        readPattern :: Parser (ArgoPatternExpression Value);
         readPattern = do
         {
             pat1 <- readSinglePattern;
-            patr <- manyMax (do
+            patr <- many (do
             {
-                readWSAndChar '@';
+                readCharAndWS '@';
                 readSinglePattern;
             });
             return (matchAll (pat1:patr));
@@ -320,27 +322,26 @@ module Data.Argo.Read where
         argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
          (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
-        readFunction :: ReadP (ArgoExpression (Value -> Value));
+        readFunction :: Parser (ArgoExpression (Value -> Value));
         readFunction = do
         {
-            readWSAndChar '{';
-            fields <- readIntercalate (readWSAndChar ',') readField;
-            _ <- optionalMax (readWSAndChar ',');
-            readWSAndChar '}';
+            readCharAndWS '{';
+            fields <- readCommaSeparated readField;
+            readCharAndWS '}';
             return (assembleFunction fields);
         } where
         {
-            readField :: ReadP (ArgoPatternExpression Value,ArgoExpression Value);
+            readField :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
             readField = do
             {
-                mpat <- optionalMax (do
+                pat <- option (patternMatch (isValue ())) (try (do
                 {
                     pat <- readPattern;
-                    readWSAndChar ':';
+                    readCharAndWS ':';
                     return pat;
-                });
+                }));
                 result <- readExpression;
-                return (fromMaybe (patternMatch (isValue ())) mpat,result);
+                return (pat,result);
             };
 
             assembleFunction :: [(ArgoPatternExpression Value,ArgoExpression Value)] -> ArgoExpression (Value -> Value);
@@ -352,18 +353,17 @@ module Data.Argo.Read where
             }) (argoBind pat exp) (assembleFunction ps);
         };
         
-        readArray :: ReadP (ArgoExpression [Value]);
+        readArray :: Parser (ArgoExpression [Value]);
         readArray = do
         {
-            readWSAndChar '[';
-            exps <- readIntercalate (readWSAndChar ',') readExpression;
-            _ <- optionalMax (readWSAndChar ',');
-            mextra <- optionalMax (do
+            readCharAndWS '[';
+            exps <- readCommaSeparated readExpression;
+            mextra <- optionMaybe (do
             {
-                readWSAndChar ';';
+                readCharAndWS ';';
                 readExpression;
             });
-            readWSAndChar ']';
+            readCharAndWS ']';
             return (
             let
             {
@@ -380,7 +380,7 @@ module Data.Argo.Read where
             });
         };
         
-        readActionExpression :: ReadP (ArgoExpression (IO Value));
+        readActionExpression :: Parser (ArgoExpression (IO Value));
         readActionExpression = do
         {
             exp <- readExpressionNoLet;
@@ -389,47 +389,90 @@ module Data.Argo.Read where
 
         argoStrictBind :: ArgoPatternExpression Value -> ArgoExpression r -> ArgoExpression (Value -> r);
         argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
-       
-        readActionContents :: ReadP (ArgoExpression (IO Value));
-        readActionContents = do
+
+        readActionRest :: Parser (ArgoExpression (IO Value));
+        readActionRest = do
         {
-            exp <- readActionExpression;
-            readWSAndChar ',';
-            rest <- readActionContents;
-            return (liftA2 (>>) exp rest);
-        } <++ do
-        {
-            patExpr <- readPattern;
-            readWSAndChar '=';
-            bindExpr <- readExpression;
-            readWSAndChar ',';
-            valExpr <- readActionContents;
-            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
-        } <++ do
-        {
-            patExpr <- readPattern;
-            readWSAndString "=!";
+            patExpr <- try (do
+            {
+                patExpr <- readPattern;
+                readStringAndWS "=!";
+                return patExpr;
+            });
             bindExpr <- readActionExpression;
-            readWSAndChar ',';
-            valExpr <- readActionContents;
+            readCharAndWS ',';
+            valExpr <- readActionRest;
             return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
-        } <++ do
+        } <|> do
+        {
+            patExpr <- try (do
+            {
+                patExpr <- readPattern;
+                readCharAndWS '=';
+                return patExpr;
+            });
+            bindExpr <- readExpression;
+            readCharAndWS ',';
+            valExpr <- readActionRest;
+            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
+        } <|> do
         {
             expr <- readActionExpression;
-            _ <- optionalMax (readWSAndChar ',');
-            return expr;
+            do
+            {
+                readCharAndWS ',';
+                do
+                {
+                    readCharAndWS ']';
+                    return expr;
+                } <|> do
+                {
+                    rest <- readActionRest;
+                    return (liftA2 (>>) expr rest);
+                };
+            } <|> do
+            {
+                readCharAndWS ']';
+                return expr;
+            }
         };
         
-        readTerm :: ReadP (ArgoExpression Value);
+        readAction :: Parser (ArgoExpression (IO Value));
+        readAction = do
+        {
+            readStringAndWS "![";
+            readActionRest;
+        };
+        
+        readDollarReference :: Parser Reference;
+        readDollarReference = do
+        {
+            readCharAndWS '$';
+            do
+            {
+                name <- readIdentifier;
+                case name of
+                {
+                    "this" -> return ThisReference;
+                    _ -> mzero;
+                };
+            } <|> do
+            {
+                libname <- readQuotedString;
+                return (LibReference libname);
+            }
+        };
+        
+        readTerm :: Parser (ArgoExpression Value);
         readTerm = do
         {
             s <- readQuotedString;
             return (pure (toValue s));
-        } <++ do
+        } <|> do
         {
             n <- readNumber;
             return (pure (toValue n));
-        } <++ do
+        } <|> do
         {
             i <- readIdentifier;
             return (case i of
@@ -439,38 +482,23 @@ module Data.Argo.Read where
                 "false" -> pure (toValue False);
                 _ -> monoValueSymbol (SymbolReference i);
             });
-        } <++
-        fmap (fmap toValue) readArray <++ do
+        } <|>
+        fmap (fmap toValue) readArray <|> do
         {
-            readWSAndString "![";
-            action <- readActionContents;
-            readWSAndChar ']';
+            action <- readAction;
             return (fmap toValue action);
-        } <++ do
+        } <|> do
         {
-            readWSAndChar '(';
+            readCharAndWS '(';
             exp <- readExpression;
-            readWSAndChar ')';
+            readCharAndWS ')';
             return exp;
-        } <++ 
-        fmap (fmap toValue) readFunction <++ do
-        {
-            readWSAndChar '$';
-            name <- readIdentifier;
-            case name of
-            {
-                "this" -> return (monoValueSymbol ThisReference);
-                _ -> mzero;
-            };
-        } <++ 
-        fmap (fmap toValue) readFunction <++ do
-        {
-            readWSAndChar '$';
-            libname <- readQuotedString;
-            return (monoValueSymbol (LibReference libname));
-        };
+        } <|> 
+        fmap (fmap toValue) readFunction <|>
+        fmap monoValueSymbol readDollarReference <|>
+        fmap (fmap toValue) readFunction;
         
-        readExpressionNoLet :: ReadP (ArgoExpression Value);
+        readExpressionNoLet :: Parser (ArgoExpression Value);
         readExpressionNoLet = do
         {
             (f:args) <- some readTerm;
@@ -481,22 +509,27 @@ module Data.Argo.Read where
             applyArgs expf (expa:args) = applyArgs (liftA2 applyValue expf expa) args;
         };
         
-        readExpression :: ReadP (ArgoExpression Value);
+        readExpression :: Parser (ArgoExpression Value);
         readExpression = do
         {
-            patExpr <- readPattern;
-            readWSAndChar '=';
+            patExpr <- try (do
+            { 
+                patExpr <- readPattern;
+                readCharAndWS '=';
+                return patExpr;
+            });
             bindExpr <- readExpression;
-            readWSAndChar ',';
+            readCharAndWS ',';
             valExpr <- readExpression;
             return ((argoStrictBind patExpr valExpr) <*> bindExpr);
-        } <++ readExpressionNoLet;
+        } <|> readExpressionNoLet;
         
-        readExpressionToEnd :: ReadP (ArgoExpression Value);
+        readExpressionToEnd :: Parser (ArgoExpression Value);
         readExpressionToEnd = do
         {
-            exp <- readExpression;
             readWS;
+            exp <- readExpression;
+            optional (readCharAndWS ',');
             eof;
             return exp;
         };
