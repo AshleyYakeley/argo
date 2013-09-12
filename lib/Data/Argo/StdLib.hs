@@ -85,6 +85,11 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     eqArray (a:aa) (b:bb) | eq a b = eqArray aa bb;
     eqArray _ _ = False;
 
+    mapV :: (Value -> Value) -> Either (Value -> Value) (Either (IO Value) [Value]) -> Either (Value -> Value) (Either (IO Value) [Value]);
+    mapV f (Left x) = Left (fmap f x);
+    mapV f (Right (Left x)) = Right (Left (fmap f x));
+    mapV f (Right (Right x)) = Right (Right (fmap f x));
+
     stdLib :: (?context :: String) => String -> Value;
     stdLib "error" = toValue (errorC :: String -> Value);
     
@@ -111,6 +116,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "stdout" = toValue (hPutStr stdout);
     stdLib "stderr" = toValue (hPutStr stderr);
 
+    stdLib "map" = toValue mapV;
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
     stdLib "fail" = toValue (fail :: String -> IO Value);

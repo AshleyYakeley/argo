@@ -58,6 +58,8 @@ module Data.Argo.StdLib.File(fileFunctions) where
 
     fileFunctions :: (?context :: String) => String -> Maybe Value;
     fileFunctions "path-concat" = Just (toValue pathConcat);
+    fileFunctions "path-split" = Just (toValue splitPath);
+    fileFunctions "path-split-name" = Just (toValue splitFileName);
     fileFunctions "path-rename" = Just (toValue rename);
     fileFunctions "path-touch" = Just (toValue touchFile);
     fileFunctions "path-setown" = Just (toValue setOwnerAndGroup);
