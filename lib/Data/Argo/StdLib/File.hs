@@ -2,9 +2,11 @@
 module Data.Argo.StdLib.File(fileFunctions) where
 {
     import Import;
+    import System.IO(hClose);
     import System.FilePath;
     import System.Directory hiding (getCurrentDirectory,setCurrentDirectory);
     import System.Posix.Files;
+    import System.Posix.Temp;
     import qualified Data.ByteString as B;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Types();
@@ -56,6 +58,25 @@ module Data.Argo.StdLib.File(fileFunctions) where
     pathConcat (p:pp) = combine p (pathConcat pp);
     pathConcat [] = ".";
 
+    withTempFile :: (FilePath -> IO Value) -> IO Value;
+    withTempFile f = do
+    {
+        (path,h) <- mkstemp "/tmp/temp.";
+        hClose h;
+        result <- f path;
+        removeLink path;
+        return result;
+    };
+
+    withTempDir :: (FilePath -> IO Value) -> IO Value;
+    withTempDir f = do
+    {
+        path <- mkdtemp "/tmp/temp.";
+        result <- f path;
+        removeDirectoryRecursive path;
+        return result;
+    };
+
     fileFunctions :: (?context :: String) => String -> Maybe Value;
     fileFunctions "path-concat" = Just (toValue pathConcat);
     fileFunctions "path-split" = Just (toValue splitPath);
@@ -78,6 +99,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileFunctions "slink-create" = Just (toValue createSymbolicLink);
     fileFunctions "slink-get" = Just (toValue readSymbolicLink);
     fileFunctions "slink-setown" = Just (toValue setSymbolicLinkOwnerAndGroup);
-    fileFunctions "slink-status" = Just (toValue getSymbolicLinkStatus);
+    fileFunctions "temp-file-with" = Just (toValue withTempFile);
+    fileFunctions "temp-directory-with" = Just (toValue withTempDir);
     fileFunctions _ = Nothing;
 }

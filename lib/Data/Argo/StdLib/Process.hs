@@ -73,7 +73,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
             Just a -> a;
             Nothing -> [];
         };
-        env = Nothing;
+        env = fromValue (fargs (Just "env"));
     } in do
     {
         forkProcess (do
