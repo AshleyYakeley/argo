@@ -77,6 +77,18 @@ module Data.Argo.StdLib.File(fileFunctions) where
         return result;
     };
 
+    directoryContents :: FilePath -> IO [String];
+    directoryContents dir = do
+    {
+        items <- getDirectoryContents dir;
+        return (filter goodItem items);
+    } where
+    {
+        goodItem "." = False;
+        goodItem ".." = False;
+        goodItem _ = True;
+    };
+
     fileFunctions :: (?context :: String) => String -> Maybe Value;
     fileFunctions "path-concat" = Just (toValue pathConcat);
     fileFunctions "path-split" = Just (toValue splitPath);
@@ -95,7 +107,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileFunctions "file-link" = Just (toValue createLink);
     fileFunctions "directory-create" = Just (toValue (createDirectoryIfMissing True));
     fileFunctions "directory-remove" = Just (toValue removeDirectoryRecursive);
-    fileFunctions "directory-contents" = Just (toValue getDirectoryContents);
+    fileFunctions "directory-contents" = Just (toValue directoryContents);
     fileFunctions "slink-create" = Just (toValue createSymbolicLink);
     fileFunctions "slink-get" = Just (toValue readSymbolicLink);
     fileFunctions "slink-setown" = Just (toValue setSymbolicLinkOwnerAndGroup);

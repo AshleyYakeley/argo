@@ -11,7 +11,7 @@ module Import(module Import) where
     import Data.Maybe as Import;
     import Data.Either as Import;
     import Data.Tuple as Import;
-    import Data.List as Import ((++),null,take,drop,intercalate);
+    import Data.List as Import ((++),null,take,drop,intercalate,filter);
     import Data.Word as Import;
     import Data.Int as Import;
     import Data.Char as Import;

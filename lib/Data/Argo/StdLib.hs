@@ -90,6 +90,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     mapV f (Right (Left x)) = Right (Left (fmap f x));
     mapV f (Right (Right x)) = Right (Right (fmap f x));
 
+    forV :: [Value] -> (Value -> IO Value) -> IO [Value];
+    forV = for;
+
     stdLib :: (?context :: String) => String -> Value;
     stdLib "error" = toValue (errorC :: String -> Value);
     
@@ -117,6 +120,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "stderr" = toValue (hPutStr stderr);
 
     stdLib "map" = toValue mapV;
+    stdLib "for" = toValue forV;
     stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
     stdLib "return" = toValue (return :: Value -> IO Value);
     stdLib "fail" = toValue (fail :: String -> IO Value);
