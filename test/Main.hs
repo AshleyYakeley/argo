@@ -191,6 +191,10 @@ module Main where
         evalTest "$\"std\" \"=\" [[]] [[]]" (return (BoolValue True)),
         evalTest "$\"std\" \"=\" [4] [4]" (return (BoolValue True)),
         
+        -- std functions
+        evalTest "$\"std\" \"subst\" \"[[\" \"]]\" \"[[a]]\" {\"a\":\"b\"}" (return (StringValue "b")),
+        evalTest "$\"std\" \"subst\" \"[[\" \"]]\" \"[ [a]]\" {\"a\":\"b\"}" (return (StringValue "[ [a]]")),
+        
         -- lib loading
         evalTestWithLibs [("a","[2]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
         evalTestWithLibs [("a","[2;$\"b\"]"),("b","[3]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),

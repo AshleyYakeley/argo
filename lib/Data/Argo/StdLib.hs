@@ -61,14 +61,18 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     {
         -- searchList s (a ++ s ++ b) = Just (a,b) where s is first occurrence
         searchList :: (Eq a) => [a] -> [a] -> Maybe ([a],[a]);
-        searchList [] text = Just ([],text);
+        searchList s t | Just text <- matchStart s t = Just ([],text);
         searchList _ [] = Nothing;
-        searchList (s:ss) (t:tt) | s == t = searchList ss tt;
         searchList sc (t:tt) = do
         {
             (a,b) <- searchList sc tt;
             return (t:a,b);
         };
+        
+        matchStart :: (Eq a) => [a] -> [a] -> Maybe [a];
+        matchStart [] t = Just t;
+        matchStart (s:ss) (t:tt) | s == t = matchStart ss tt;
+        matchStart _ _ = Nothing;
     };
 
     eq :: Value -> Value -> Bool;
