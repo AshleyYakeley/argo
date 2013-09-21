@@ -79,6 +79,15 @@ module Data.Argo.StdLib.Process(processFunctions) where
         forkProcess (do
         {
             setContext (fargs . Just);
+            -- set real userid to the effective userid
+            ruid <- getRealUserID;
+            if ruid == 0 then do
+            {
+                euid <- getEffectiveUserID;
+                setEffectiveUserID ruid;
+                setUserID euid;
+            }
+            else return ();
             executeFile cmdpath False args env;
         });
     };
