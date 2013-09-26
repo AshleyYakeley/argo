@@ -249,22 +249,22 @@ module Data.Argo.Expression where
      ValueExpression wit f r -> ValueExpression wit Identity (f r);
     toSimpleValueExpression (MkExpression vwits fvsr) = MkExpression vwits (Identity (\vals -> fmap (\vsr -> vsr vals) fvsr));
 
+    type PatternExpression wit ff q = MatchExpression wit (Compose ((->) q) ff);
 
-    type PatternExpression wit q = MatchExpression wit (Compose ((->) q) Maybe);
-
-    patternSymbol :: wit val -> PatternExpression wit val ();
-    patternSymbol = expressionSymbol (Compose (\val -> pure ((val,()),())));
-
-    pattern :: (q -> Maybe r) -> PatternExpression wit q r;
+    pattern :: (Functor ff) => (q -> ff r) -> PatternExpression wit ff q r;
     pattern qmr = matchSimple (Compose qmr);
 
-    patternMatch :: (q -> Bool) -> PatternExpression wit q ();
-    patternMatch qb = pattern (\q -> if qb q then Just () else Nothing);
+    patternSymbol :: (Applicative ff) => wit val -> PatternExpression wit ff val ();
+    patternSymbol = expressionSymbol (Compose (\val -> pure ((val,()),())));
+
+    patternMatch :: (MonadPlus ff,Applicative ff) => (q -> Bool) -> PatternExpression wit ff q ();
+    patternMatch qb = pattern (\q -> if qb q then return () else mzero);
     
-    patternMatchEq :: (Eq q) => q -> PatternExpression wit q ();
+    patternMatchEq :: (MonadPlus ff,Applicative ff,Eq q) => q -> PatternExpression wit ff q ();
     patternMatchEq q = patternMatch ((==) q);
     
-    composePattern :: PatternExpression wit q r -> PatternExpression wit p q -> PatternExpression wit p r;
+    composePattern :: (Monad ff) =>
+     PatternExpression wit ff q r -> PatternExpression wit ff p q -> PatternExpression wit ff p r;
     composePattern (MkExpression wits1 (Compose qmv1r)) (MkExpression wits2 (Compose pmv2q)) =
      case witnessedListAppend wits1 wits2 of
     {
@@ -276,9 +276,11 @@ module Data.Argo.Expression where
         }));
     };
     
-    subPattern :: (q -> Maybe p) -> PatternExpression wit p r -> PatternExpression wit q r;
+    subPattern :: (Monad ff,Applicative ff) =>
+     (q -> ff p) -> PatternExpression wit ff p r -> PatternExpression wit ff q r;
     subPattern qmp patp = composePattern patp (pattern qmp);
     
-    patternMatchPair :: PatternExpression wit p () -> PatternExpression wit q () -> PatternExpression wit (p,q) ();
-    patternMatchPair patp patq = matchBoth (subPattern (Just . fst) patp) (subPattern (Just . snd) patq);
+    patternMatchPair :: (Monad ff,Applicative ff) =>
+     PatternExpression wit ff p () -> PatternExpression wit ff q () -> PatternExpression wit ff (p,q) ();
+    patternMatchPair patp patq = matchBoth (subPattern (return . fst) patp) (subPattern (return . snd) patq);
 }

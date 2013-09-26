@@ -17,7 +17,7 @@ module Data.Argo.MonoExpression where
     };
 
     type MonoValueExpression sym val = ValueExpression (MonoSymbol sym val);
-    type MonoPatternExpression sym val q = PatternExpression (MonoSymbol sym val) q;
+    type MonoPatternExpression sym val ff q = PatternExpression (MonoSymbol sym val) ff q;
 
     monoWitMap :: (sym1 -> sym2) ->
      Expression combine (MonoSymbol sym1 val) f r -> Expression combine (MonoSymbol sym2 val) f r;
@@ -26,17 +26,17 @@ module Data.Argo.MonoExpression where
     monoValueSymbol :: (Applicative f) => sym -> MonoValueExpression sym val f val;
     monoValueSymbol sym = valueSymbol (MkMonoSymbol sym);
 
-    monoPatternSymbol :: sym -> MonoPatternExpression sym val val ();
+    monoPatternSymbol :: (Applicative ff) => sym -> MonoPatternExpression sym val ff val ();
     monoPatternSymbol sym = patternSymbol (MkMonoSymbol sym);
 
     monoLetBind :: (SimpleWitness wit,Eq sym,Applicative f) =>
      sym -> MonoValueExpression sym val f val -> MonoValueExpression sym val f r -> MonoValueExpression sym val f r;
     monoLetBind sym = letBind (MkMonoSymbol sym);
 
-    monoPatternBind :: (Eq sym,Applicative f) =>
-        MonoPatternExpression sym val q () ->
+    monoPatternBind :: (Eq sym,Applicative f,Functor ff) =>
+        MonoPatternExpression sym val ff q () ->
         MonoValueExpression sym val f r ->
-        MonoValueExpression sym val (Compose (Compose ((->) q) Maybe) f) r;
+        MonoValueExpression sym val (Compose (Compose ((->) q) ff) f) r;
     monoPatternBind patExp valExp = fmap snd (matchBind patExp valExp);
 
     monoEvaluateExpression :: (Applicative m,Functor f) => (sym -> m val) -> MonoValueExpression sym val f r -> m (f r);

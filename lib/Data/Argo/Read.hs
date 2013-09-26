@@ -19,7 +19,7 @@ module Data.Argo.Read where
     };
     
     type ArgoExpression = MonoValueExpression Reference Value Identity;
-    type ArgoPatternExpression q = MonoPatternExpression String Value q ();
+    type ArgoPatternExpression q = MonoPatternExpression String Value Maybe q ();
 
     -- The recursive library lookup magic happens here.
     evaluateWithLibs :: forall m. (Applicative m,MonadFix m,?context::String) => (String -> m (Maybe (Either String Value))) -> String -> m Value;
