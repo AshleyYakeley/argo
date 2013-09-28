@@ -4,9 +4,9 @@ module Data.Argo.Read where
     import qualified Control.Monad.Trans.State;
     import Text.Parsec.String;
     import Text.Parsec;
+    import Language.Expression.Expression;
+    import Language.Expression.Mono;
     import Data.Argo.Number;
-    import Data.Argo.Expression;
-    import Data.Argo.MonoExpression;
     import Data.Argo.Value;
     
     data Reference = ThisReference | LibReference String | SymbolReference String deriving (Eq);

@@ -15,8 +15,6 @@ library
     hs-source-dirs: lib
     exposed-modules:    
         Data.Argo
-        Data.Argo.Expression
-        Data.Argo.MonoExpression
         Data.Argo.Value
         Data.Argo.Read
         Data.Argo.StdLib
@@ -30,6 +28,7 @@ library
         base == 4.6.*,
         transformers >= 0.3,
         witness == 0.2.*,
+        expression == 0.1.*,
         bytestring >= 0.10.0.0,
         utf8-string >= 0.3.7,
         filepath >= 1.3,
