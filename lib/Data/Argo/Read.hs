@@ -280,12 +280,38 @@ module Data.Argo.Read where
             };
         };
 
+        readRE :: Parser ArgoRegularExpression;
+        readRE = do
+        {
+            terms <- readCommaSeparated readRETerm;
+            return (foldTerms terms);
+        } where
+        {
+            foldTerms [] = regexEmpty;
+            foldTerms [r] = r;
+            foldTerms (r:rs) = regexConcat (\_ _ v -> v) r (foldTerms rs);
+        };
+
+        readRETerm :: Parser ArgoRegularExpression;
+        readRETerm = do
+        {
+            s <- readQuotedString;
+            return (regexText s);
+        } <|> do
+        {
+            readCharAndWS '(';
+            regex <- readRE;
+            readCharAndWS ')';
+            return regex;
+        };
+
         readRegularExpression :: Parser ArgoRegularExpression;
         readRegularExpression = do
         {
             readCharAndWS '/';
+            regex <- readRE;
             readCharAndWS '/';
-            return regexEmpty;
+            return regex;
         };
 
         readSinglePattern :: Parser (ArgoPatternExpression Value);

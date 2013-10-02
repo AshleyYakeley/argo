@@ -162,8 +162,12 @@ module Main where
         patternTests "{1:_number,}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "{_number,}" ["{null:2}","{null:3}","{null:4}","{2}","{3}","{4}"] ["{1:2}","{1:3}","{1:4}","null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
-        patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"],
-        patternTests "//" ["\"\""] ["null","false","0","[]","{}","\"a\"","\" \"","\"abc\""]
+        patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]
+    ] ++ concat
+    [
+        regexpTests "" [""] ["a"," ","abc"],
+        regexpTests "\"abc\"" ["abc"] ["a"," ","abcd","ab"],
+        regexpTests "\"abc\",\"def\"" ["abcdef"] ["a"," ","abcd","ab","abc","def","d","abcdeff"]
     ] ++
     [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
@@ -218,6 +222,9 @@ module Main where
 
         patternTests :: String -> [String] -> [String] -> [Test];
         patternTests pat goods bads = (fmap (\val -> patternTest pat val True) goods) ++ (fmap (\val -> patternTest pat val False) bads);
+
+        regexpTests  :: String -> [String] -> [String] -> [Test];
+        regexpTests pat goods bads = patternTests ("/" ++ pat ++"/") (fmap show goods) (["null","false","0","[]","{}"] ++ (fmap show bads));
     };
 
     main :: IO ();
