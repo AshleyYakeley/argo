@@ -13,6 +13,7 @@ module TestUtil
     import Control.Exception;
     import Control.Monad.Fix;
     import Data.Typeable;
+    import System.IO;
 
     data Result = Pass | Fail String deriving Typeable;
 
@@ -38,8 +39,16 @@ module TestUtil
         };
     };
 
+    debugTests :: Bool;
+    debugTests = False;
+
     ioTest :: String -> IO Result -> Test;
-    ioTest = Test;
+    ioTest s r | debugTests = Test s (do
+    {
+        hPutStrLn stdout s;
+        r;
+    });
+    ioTest s r = Test s r;
 
     pureTest :: String -> Result -> Test;
     pureTest name result = ioTest name (catch (evaluate result) (\(ex :: SomeException) -> return (Fail (show ex))));
@@ -49,13 +58,13 @@ module TestUtil
     diff expected found = Fail ("expected " ++ (show expected) ++ " but found " ++ (show found));
 
     data FailM a = Success a | Error String;
-    
+
     instance Functor FailM where
     {
         fmap ab (Success a) = Success (ab a);
         fmap _ (Error s) = Error s;
     };
-    
+
     instance Applicative FailM where
     {
         pure = Success;
@@ -63,7 +72,7 @@ module TestUtil
         (Error err) <*> _ = Error err;
         (Success _) <*> (Error err) = Error err;
     };
-    
+
     instance Monad FailM where
     {
         return = Success;
@@ -71,7 +80,7 @@ module TestUtil
         (Error err) >>= _ = Error err;
         fail = Error;
     };
-    
+
     instance MonadFix FailM where
     {
         mfix (ama) = let
@@ -84,7 +93,7 @@ module TestUtil
             };
         } in ma;
     };
-    
+
     instance (Show a) => Show (FailM a) where
     {
         show (Success a) = "success: " ++ (show a);

@@ -167,7 +167,23 @@ module Main where
     [
         regexpTests "" [""] ["a"," ","abc"],
         regexpTests "\"abc\"" ["abc"] ["a"," ","abcd","ab"],
-        regexpTests "\"abc\",\"def\"" ["abcdef"] ["a"," ","abcd","ab","abc","def","d","abcdeff"]
+        regexpTests "\"abc\",\"def\"" ["abcdef"] ["a"," ","abcd","ab","abc","def","d","abcdeff"],
+        regexpTests "\"abc\"|\"defg\"" ["abc","defg"] ["abcdefg","","abcd","def","defga"],
+        regexpTests "\"abc\"@\"abc\"" ["abc"] ["abcdefg","","abcd","def","defga"],
+        regexpTests "\"abc\"*" ["abcabc","","abc"] ["a"," ","abcd","ab","def","d","abcdeff"],
+        regexpTests "." ["a"," "] ["","ab","aa"],
+        regexpTests "[\"abc\"]" ["a","b","c"] ["","ab","aa","d"," "],
+        regexpTests "[^\"abc\"]" ["d"," "] ["","ab","aa","a","b","c"],
+        regexpTests ".*" ["abc","abcdefg","","abcd","def","defga","a","ab","bc"] [],
+        regexpTests "\"a\"*" ["","a","aa","aaa"] ["ab","ba","b"],
+        regexpTests "\"a\"?" ["","a"] ["ab","ba","b","aa","aaa"],
+        regexpTests "\"a\"+" ["a","aa","aaa"] ["","ab","ba","b"],
+        regexpTests "\"a\"{2}" ["aa"] ["","a","aaa","ab","ba","b"],
+        regexpTests "\"a\"{2,3}" ["aa","aaa"] ["","a","aaaa","ab","ba","b"],
+        regexpTests "\"a\"{2,}" ["aa","aaa","aaaa"] ["","a","ab","ba","b"],
+        regexpTests "(.,.,.)@\"abc\"" ["abc"] ["abcdefg","","abcd","def","defga","a","ab","bc"],
+        regexpTests "(.*)@\"abc\"" ["abc"] ["abcdefg","","abcd","def","defga","a","ab","bc"],
+        regexpTests "(\"a\",\"bca\"*,\"bc\")@\"abc\"*" ["abc","abcabc"] ["","ab"]
     ] ++
     [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
