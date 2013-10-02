@@ -60,7 +60,8 @@ executable argo
         base == 4.6.*,
         transformers >= 0.3,
         argo == 0.1.0.0,
-        utf8-string >= 0.3.7
+        utf8-string >= 0.3.7,
+        unix >= 2.6.0.0
     extensions:
         ScopedTypeVariables
         FlexibleContexts

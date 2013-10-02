@@ -1,9 +1,12 @@
 module Main where
 {
-    import Prelude hiding (getContents, readFile);
+    import Prelude hiding (getContents,readFile,interact,putStr,putStrLn,getLine);
     import Data.Argo;
     import System.Environment;
-    import System.IO.UTF8;
+    import System.IO.UTF8 hiding (interact);
+    import System.IO (hSetBuffering,BufferMode(..),stdout);
+    import System.Posix.Terminal;
+    import System.Posix.IO;
 
     interpretArgs :: [String] -> ([FilePath],Maybe FilePath,[String]);
     interpretArgs ("-I":dir:rest) = case interpretArgs rest of
@@ -14,6 +17,33 @@ module Main where
     interpretArgs (s:rest) = ([],Just s,rest);
     interpretArgs [] = ([],Nothing,[]);
 
+    run :: String -> [FilePath] -> [String] -> IO String -> IO ();
+    run filename dirs appArgs getter = do
+    {
+        s <- getter;
+        r <- let {?context = filename} in evaluateWithDirs dirs s;
+        _ :: Value <- r appArgs;
+        return ();
+    };
+
+    interact :: [FilePath] -> IO ();
+    interact dirs = do
+    {
+        putStr "argo> ";
+        s <- getLine;
+        r <- let {?context = "input"} in evaluateWithDirs dirs s;
+        case r of
+        {
+            ActionValue action -> do
+            {
+                result <- action;
+                putStrLn (show result);
+            };
+            _ -> putStrLn (show r);
+        };
+        interact dirs;
+    };
+
     main :: IO ();
     main = do
     {
@@ -21,15 +51,21 @@ module Main where
         let
         {
             (dirs,mFilePath,appArgs) = interpretArgs args;
-            (getter,filename) = case mFilePath of
-            {
-                Nothing -> (getContents,"stdin");
-                Just filePath -> (readFile filePath,filePath);
-            };
         };
-        s <- getter;
-        r <- let {?context = filename} in evaluateWithDirs dirs s;
-        _ :: Value <- r appArgs;
-        return ();
+        case mFilePath of
+        {
+            Nothing -> do
+            {
+                istty <- queryTerminal stdInput;
+                if istty
+                 then do
+                 {
+                    hSetBuffering stdout NoBuffering;
+                    interact dirs;
+                 }
+                 else run "stdin" dirs appArgs getContents;
+            };
+            Just filePath -> run filePath dirs appArgs (readFile filePath);
+        };
     };
 }
