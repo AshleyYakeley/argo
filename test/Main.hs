@@ -14,6 +14,9 @@ module Main where
     libFinder (_:rest) name' = libFinder rest name';
     libFinder [] _ = return Nothing;
 
+    eval :: (?context :: String) => String -> FailM Value;
+    eval = evaluateWithStdLib (\_ -> return Nothing);
+
     evalTestWithLibs :: [(String,String)] -> String -> FailM Value -> Test;
     evalTestWithLibs libs s mv = let {?context = "test"} in
      pureTest s (diff (show mv) (show (evaluateWithStdLib (libFinder libs) s :: FailM Value)));
@@ -186,6 +189,13 @@ module Main where
         regexpTests "(\"a\",\"bca\"*,\"bc\")@\"abc\"*" ["abc","abcabc"] ["","ab"]
     ] ++
     [
+        regexpBindTest "a" "x" [("a",StringValue "x")],
+        regexpBindTest "(\"x\"@a)*" "xxxx" [("a",ArrayValue [StringValue "x",StringValue "x",StringValue "x",StringValue "x"])],
+        regexpBindTest "(\"x\"@a)?" "x" [("a",StringValue "x")],
+        regexpBindTest "(\"x\"@a)?" "" [("a",NullValue)],
+        regexpBindTest "(\"x\"@a)|\"y\"" "y" [("a",NullValue)]
+    ] ++
+    [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
         evalTest "{a@[b]:[a,b]} [1]" (return (ArrayValue [ArrayValue [NumberValue 1],NumberValue 1]))
     ] ++
@@ -239,8 +249,21 @@ module Main where
         patternTests :: String -> [String] -> [String] -> [Test];
         patternTests pat goods bads = (fmap (\val -> patternTest pat val True) goods) ++ (fmap (\val -> patternTest pat val False) bads);
 
-        regexpTests  :: String -> [String] -> [String] -> [Test];
+        regexpTests :: String -> [String] -> [String] -> [Test];
         regexpTests pat goods bads = patternTests ("/" ++ pat ++"/") (fmap show goods) (["null","false","0","[]","{}"] ++ (fmap show bads));
+
+        regexpBindTest :: String -> String -> [(String,Value)] -> Test;
+        regexpBindTest pat val binds = let {?context = "test"} in let
+        {
+            expr = "{/" ++ pat ++ "/:{" ++ (concat (fmap (\(n,_) -> (show n) ++ ":" ++ n ++ ",") binds)) ++ "}} " ++ (show val);
+            expected = return (fmap (\(n,v) -> (n,show v)) binds);
+            found = do
+            {
+                funcVal <- eval expr;
+                func <- fromValueMaybe funcVal;
+                return (fmap (\(n,_) -> (n,show (func n :: Value))) binds);
+            };
+        } in pureTest expr (diff expected found);
     };
 
     main :: IO ();

@@ -59,6 +59,13 @@ module TestUtil
 
     data FailM a = Success a | Error String;
 
+    instance (Eq a) => Eq (FailM a) where
+    {
+        (Success a) == (Success b) = a == b;
+        (Error a) == (Error b) = a == b;
+        _ == _ = False;
+    };
+
     instance Functor FailM where
     {
         fmap ab (Success a) = Success (ab a);

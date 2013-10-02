@@ -182,11 +182,12 @@ module Data.Argo.Read where
         goodChar '$' = False;
         goodChar c = not (isSpace c);
 
-        firstChar :: Char -> Bool;
-        firstChar = isAlpha;
-
-        readIdentifierChar :: Parser Char;
-        readIdentifierChar = readEscapedChar <|> (satisfy goodChar);
+        goodREChar :: Char -> Bool;
+        goodREChar '/' = False;
+        goodREChar '?' = False;
+        goodREChar '*' = False;
+        goodREChar '+' = False;
+        goodREChar c = goodChar c;
 
         readQuotedString :: Parser String;
         readQuotedString = do
@@ -197,11 +198,23 @@ module Data.Argo.Read where
             return s;
         };
 
+        readIdentifierChar :: Parser Char;
+        readIdentifierChar = readEscapedChar <|> (satisfy goodChar);
+
         readIdentifier :: Parser String;
         readIdentifier = do
         {
-            first <- satisfy firstChar;
+            first <- satisfy isAlpha;
             rest <- many readIdentifierChar;
+            readWS;
+            return (first:rest);
+        };
+
+        readREIdentifier :: Parser String;
+        readREIdentifier = do
+        {
+            first <- satisfy isAlpha;
+            rest <- many (readEscapedChar <|> (satisfy goodREChar));
             readWS;
             return (first:rest);
         };
@@ -389,7 +402,7 @@ module Data.Argo.Read where
             return (\c -> elem c s);
         } <|> do
         {
-            name <- readIdentifier;
+            name <- readREIdentifier;
             case name of
             {
                 "Lu" -> return (isGeneralCategory UppercaseLetter);
@@ -515,6 +528,10 @@ module Data.Argo.Read where
         {
             readCharAndWS '.';
             return regexAnyChar;
+        } <|> do
+        {
+            name <- readREIdentifier;
+            return (regexSymbol toValue (MkMonoSymbol name) regexAnything);
         } <|> do
         {
             s <- readQuotedString;
