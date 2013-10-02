@@ -22,7 +22,7 @@ module Main where
     evalTest = evalTestWithLibs [];
 
     tests :: [Test];
-    tests = 
+    tests =
     [
         showTest NullValue "null",
         showTest (BoolValue False) "false",
@@ -39,11 +39,11 @@ module Main where
 
         -- null type
         evalTest "null" (return NullValue),
-        
+
         -- boolean type
         evalTest "false" (return (BoolValue False)),
         evalTest "true" (return (BoolValue True)),
-        
+
         -- number type
         evalTest "0" (return (NumberValue 0)),
         evalTest "3" (return (NumberValue 3)),
@@ -64,11 +64,11 @@ module Main where
         evalTest "-5.1_6" (return (NumberValue (-31%6))),
         evalTest "3e6" (return (NumberValue (3000000))),
         evalTest "-1.25_142857E-4" (return (NumberValue (-876/7000000))),
-        
+
         --string type
         evalTest "\"\"" (return (StringValue "")),
         evalTest "\"hx\"" (return (StringValue "hx")),
-        
+
         -- array type
         evalTest "[]" (return (ArrayValue [])),
         evalTest "[37]" (return (ArrayValue [NumberValue 37])),
@@ -77,7 +77,7 @@ module Main where
         evalTest "[;[\"abGc\"]]" (return (ArrayValue [StringValue "abGc"])),
         evalTest "[51;[]]" (return (ArrayValue [NumberValue 51])),
         evalTest "[false,51;[null,35]]" (return (ArrayValue [BoolValue False,NumberValue 51,NullValue,NumberValue 35])),
-        
+
         -- function type
         evalTest "{}" (return (FunctionValue id)),
         evalTest "{_:null}" (return (FunctionValue id)),
@@ -118,18 +118,18 @@ module Main where
         evalTest "{37,true:54,} null" (return (NumberValue 37)),
         evalTest "{37,true:54,} true" (return (NumberValue 54)),
         evalTest "{37,true:54,} false" (return NullValue),
-        
+
         -- comments
         evalTest "#\n34" (return (NumberValue 34)),
         evalTest "#\n{#\na#\n:#\na#\n}#\n89#\n" (return (NumberValue 89)),
         evalTest " #\n { #\n a #\n : #\n a #\n } #\n 89 #\n" (return (NumberValue 89)),
-        
+
         -- parentheses
         evalTest "(1)" (return (NumberValue 1)),
         evalTest "({a:a} 1)" (return (NumberValue 1)),
         evalTest "{a:a} (1)" (return (NumberValue 1)),
         evalTest "{a:(a)} 1" (return (NumberValue 1)),
-        
+
         -- let-binding
         evalTest "a=1,a" (return (NumberValue 1)),
         evalTest "(a=1,a)" (return (NumberValue 1)),
@@ -162,7 +162,8 @@ module Main where
         patternTests "{1:_number,}" ["{1:2}","{1:3}","{1:4}"] ["null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "{_number,}" ["{null:2}","{null:3}","{null:4}","{2}","{3}","{4}"] ["{1:2}","{1:3}","{1:4}","null","false","0","\"\"","[]","{}","{1:null}","{2:2}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{}"] [],
-        patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"]
+        patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{}"],
+        patternTests "//" ["\"\""] ["null","false","0","[]","{}","\"a\"","\" \"","\"abc\""]
     ] ++
     [
         evalTest "{a@b:[a,b]} 2" (return (ArrayValue [NumberValue 2,NumberValue 2])),
@@ -172,14 +173,14 @@ module Main where
         evalTest "$\"std\" \"+\" 3 4" (return (NumberValue 7)),
         evalTest "$\"std\" \"fix\"" (return (FunctionValue id)),
         evalTest "$\"std\" \"fix\" {fib:{0:0,1:1,n:$\"std\" \"+\" (fib ($\"std\" \"-\" n 1)) (fib ($\"std\" \"-\" n 2))}} 11" (return (NumberValue 89)),
-        
+
         evalTest "$\"std\" \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
         evalTest "$\"std\" \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
         evalTest "$\"std\" \"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
         evalTest "$\"std\" \"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
-        
+
         evalTest "$\"std\" \"bytes\" \"AF 30 2b05\"" (return (ByteArrayValue (B.pack [0xAF,0x30,0x2B,0x05]))),
-        
+
         evalTest "$\"std\" \"=\" null null" (return (BoolValue True)),
         evalTest "$\"std\" \"=\" 1 1" (return (BoolValue True)),
         evalTest "$\"std\" \"=\" 1 2" (return (BoolValue False)),
@@ -190,11 +191,11 @@ module Main where
         evalTest "$\"std\" \"=\" [{}] [{}]" (return (BoolValue False)),
         evalTest "$\"std\" \"=\" [[]] [[]]" (return (BoolValue True)),
         evalTest "$\"std\" \"=\" [4] [4]" (return (BoolValue True)),
-        
+
         -- std functions
         evalTest "$\"std\" \"subst\" \"[[\" \"]]\" \"[[a]]\" {\"a\":\"b\"}" (return (StringValue "b")),
         evalTest "$\"std\" \"subst\" \"[[\" \"]]\" \"[ [a]]\" {\"a\":\"b\"}" (return (StringValue "[ [a]]")),
-        
+
         -- lib loading
         evalTestWithLibs [("a","[2]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
         evalTestWithLibs [("a","[2;$\"b\"]"),("b","[3]")] "[1;$\"a\"]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
@@ -214,7 +215,7 @@ module Main where
     {
         patternTest :: String -> String -> Bool -> Test;
         patternTest pat val result = evalTest ("{" ++ pat ++ ":true,_:false} " ++ val) (return (BoolValue result));
-        
+
         patternTests :: String -> [String] -> [String] -> [Test];
         patternTests pat goods bads = (fmap (\val -> patternTest pat val True) goods) ++ (fmap (\val -> patternTest pat val False) bads);
     };
