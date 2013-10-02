@@ -1,7 +1,7 @@
 name:                argo
 version:             0.1.0.0
--- synopsis:            
--- description:         
+-- synopsis:
+-- description:
 license:             GPL-2
 license-file:        LICENSE
 author:              Ashley Yakeley
@@ -13,12 +13,12 @@ cabal-version:       >=1.8
 
 library
     hs-source-dirs: lib
-    exposed-modules:    
+    exposed-modules:
         Data.Argo
         Data.Argo.Value
         Data.Argo.Read
         Data.Argo.StdLib
-    other-modules:      
+    other-modules:
         Import
         Data.Argo.Number
         Data.Argo.StdLib.Types
@@ -27,7 +27,7 @@ library
     build-depends:
         base == 4.6.*,
         transformers >= 0.3,
-        witness == 0.2.*,
+        witness == 0.3.*,
         expression == 0.1.*,
         bytestring >= 0.10.0.0,
         utf8-string >= 0.3.7,
@@ -35,11 +35,11 @@ library
         directory >= 1.2,
         unix >= 2.6.0.0,
         parsec >= 3.1.3
-    extensions:         
-        NoImplicitPrelude 
-        ScopedTypeVariables 
-        FlexibleContexts 
-        FlexibleInstances 
+    extensions:
+        NoImplicitPrelude
+        ScopedTypeVariables
+        FlexibleContexts
+        FlexibleInstances
         KindSignatures
         GADTs
         ImpredicativeTypes
@@ -61,7 +61,7 @@ executable argo
         transformers >= 0.3,
         argo == 0.1.0.0,
         utf8-string >= 0.3.7
-    extensions:         
+    extensions:
         ScopedTypeVariables
         FlexibleContexts
         FlexibleInstances
@@ -78,7 +78,7 @@ executable argo
 test-suite tests
     hs-source-dirs: test
     type: exitcode-stdio-1.0
-    extensions: 
+    extensions:
         ScopedTypeVariables
         FlexibleContexts
         FlexibleInstances
@@ -91,7 +91,7 @@ test-suite tests
         ConstraintKinds
         ImplicitParams
     ghc-options: -Wall
-    build-depends: 
+    build-depends:
         base == 4.6.*,
         bytestring >= 0.10.0.0,
         transformers >= 0.3,
