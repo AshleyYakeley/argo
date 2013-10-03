@@ -2,9 +2,11 @@ module Main where
 {
     import Prelude hiding (getContents,readFile,interact,putStr,putStrLn,getLine);
     import Data.Argo;
+    import Control.Exception;
     import System.Environment;
     import System.IO.UTF8 hiding (interact);
     import System.IO (hSetBuffering,BufferMode(..),stdout);
+    import System.IO.Error;
     import System.Posix.Terminal;
     import System.Posix.IO;
 
@@ -31,16 +33,22 @@ module Main where
     {
         putStr "argo> ";
         s <- getLine;
-        r <- let {?context = "input"} in evaluateWithDirs dirs s;
-        case r of
+        catch (do
         {
-            ActionValue action -> do
+            r <- let {?context = "input"} in evaluateWithDirs dirs s;
+            case r of
             {
-                result <- action;
-                putStrLn (show result);
+                ActionValue action -> do
+                {
+                    result <- action;
+                    putStrLn (show result);
+                };
+                _ -> putStrLn (show r);
             };
-            _ -> putStrLn (show r);
-        };
+        }) (\(e :: IOException) -> do
+        {
+            putStrLn (ioeGetErrorString e);
+        });
         interact dirs;
     };
 
