@@ -4,6 +4,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import qualified Data.ByteString as B;
     import Data.Argo.Number;
     import Data.Argo.Value;
+    import Data.Argo.Read;
     import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
     import Codec.Binary.UTF8.String;
@@ -36,17 +37,17 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
         toDigitStream (c:cc) | Just i <- hexDigit c = (toEnum i):(toDigitStream cc);
         toDigitStream (c:cc) | isSpace c = toDigitStream cc;
         toDigitStream (c:_) = error ("unrecognised char in bytes: " ++ [c]);
-        
+
         digitStreamToBytes :: [Word8] -> [Word8];
         digitStreamToBytes [] = [];
         digitStreamToBytes [_] = error "extra hex digit";
         digitStreamToBytes (a:b:rest) = ((a * 16) + b):(digitStreamToBytes rest);
     };
-    
+
     utf8 :: Either String [Word8] -> Either [Word8] String;
     utf8 (Left s) = Left (encode s);
     utf8 (Right b) = Right (decode b);
-    
+
     subst :: String -> String -> String -> (String -> String) -> String;
     subst pre post template dict = case searchList pre template of
     {
@@ -68,12 +69,16 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
             (a,b) <- searchList sc tt;
             return (t:a,b);
         };
-        
+
         matchStart :: (Eq a) => [a] -> [a] -> Maybe [a];
         matchStart [] t = Just t;
         matchStart (s:ss) (t:tt) | s == t = matchStart ss tt;
         matchStart _ _ = Nothing;
     };
+
+    argoRead :: String -> (String -> Maybe Value) -> String -> Maybe Value;
+    argoRead context libs text = let {?context = context} in
+        evaluateWithLibs (\s -> return (fmap Right (libs s))) text;
 
     eq :: Value -> Value -> Bool;
     eq NullValue NullValue = True;
@@ -83,7 +88,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     eq (ByteArrayValue a) (ByteArrayValue b) = a == b;
     eq (ArrayValue a) (ArrayValue b) = eqArray a b;
     eq _ _ = False;
-    
+
     eqArray :: [Value] -> [Value] -> Bool;
     eqArray [] [] = True;
     eqArray (a:aa) (b:bb) | eq a b = eqArray aa bb;
@@ -99,7 +104,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
 
     stdLib :: (?context :: String) => String -> Value;
     stdLib "error" = toValue (errorC :: String -> Value);
-    
+
     stdLib "default" = toValue defaultV;
     stdLib "function-default" = toValue defaultFunction;
     stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
@@ -130,6 +135,9 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     stdLib "fail" = toValue (fail :: String -> IO Value);
     stdLib "fix" = toValue fixV;
     stdLib "action-fix" = toValue (fixIO :: (Value -> IO Value) -> IO Value);
+
+    stdLib "argo-read" = toValue argoRead;
+
     stdLib s | Just r <- fileFunctions s = r;
     stdLib s | Just r <- processFunctions s = r;
     stdLib s = errorC ("$\"std\" " ++ (show s) ++ ": not found");
