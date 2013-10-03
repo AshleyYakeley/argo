@@ -679,6 +679,35 @@ module Data.Argo.Read where
         argoStrictBind :: ArgoPatternExpression Value -> ArgoExpression r -> ArgoExpression (Value -> r);
         argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
 
+        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
+        readBinding readValExpr = do
+        {
+            (patExpr,argExprs) <- try (do
+            {
+                patExpr <- readPattern;
+                argExprs <- many readPattern;
+                readCharAndWS '=';
+                return (patExpr,argExprs);
+            });
+            bodyExpr <- readExpression;
+            readCharAndWS ',';
+            valExpr <- readValExpr;
+            return ((argoStrictBind patExpr valExpr) <*> (abstractExprs argExprs bodyExpr));
+        } where
+        {
+            abstractExprs [] bodyExpr = bodyExpr;
+            abstractExprs (arg:args) bodyExpr = abstractExpr arg (abstractExprs args bodyExpr);
+
+            abstractExpr argExpr bodyExpr = fmap strictFunction (argoBind argExpr bodyExpr);
+
+            strictFunction :: (Value -> Maybe Value) -> Value;
+            strictFunction f = toValue (\v -> case f v of
+            {
+                Just r -> r;
+                Nothing -> errorC "no match";
+            });
+        };
+
         readActionRest :: Parser (ArgoExpression (IO Value));
         readActionRest = do
         {
@@ -692,19 +721,8 @@ module Data.Argo.Read where
             readCharAndWS ',';
             valExpr <- readActionRest;
             return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
-        } <|> do
-        {
-            patExpr <- try (do
-            {
-                patExpr <- readPattern;
-                readCharAndWS '=';
-                return patExpr;
-            });
-            bindExpr <- readExpression;
-            readCharAndWS ',';
-            valExpr <- readActionRest;
-            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
-        } <|> do
+        } <|>
+        readBinding readActionRest <|> do
         {
             expr <- readActionExpression;
             do
@@ -799,19 +817,7 @@ module Data.Argo.Read where
         };
 
         readExpression :: Parser (ArgoExpression Value);
-        readExpression = do
-        {
-            patExpr <- try (do
-            {
-                patExpr <- readPattern;
-                readCharAndWS '=';
-                return patExpr;
-            });
-            bindExpr <- readExpression;
-            readCharAndWS ',';
-            valExpr <- readExpression;
-            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
-        } <|> readExpressionNoLet;
+        readExpression = readBinding readExpression <|> readExpressionNoLet;
 
         readExpressionToEnd :: Parser (ArgoExpression Value);
         readExpressionToEnd = do

@@ -141,7 +141,10 @@ module Main where
         evalTest "[a=1,a]" (return (ArrayValue [NumberValue 1])),
         evalTest "b=(a=1,a),b" (return (NumberValue 1)),
         evalTest "b=a=1,a,b" (return (NumberValue 1)),
-        evalTest "a=1,b=2,[b,a]" (return (ArrayValue [NumberValue 2,NumberValue 1]))
+        evalTest "a=1,b=2,[b,a]" (return (ArrayValue [NumberValue 2,NumberValue 1])),
+        evalTest "id x=x,id 4" (return (NumberValue 4)),
+        evalTest "k x y=x,k 5 6" (return (NumberValue 5)),
+        evalTest "pp x y z = z,pp 6 7 8" (return (NumberValue 8))
     ] ++ concat
         -- pattern matching wildcard & type
     [
