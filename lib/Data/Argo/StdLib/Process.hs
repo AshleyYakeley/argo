@@ -3,14 +3,19 @@ module Data.Argo.StdLib.Process(processFunctions) where
 {
     import Import;
     import Control.Exception;
+    import Control.Concurrent;
+    import Data.ByteString;
     import System.Exit;
     import System.IO.Error;
     import System.Posix.Types;
+    import System.Posix.IO;
     import System.Posix.Env;
     import System.Posix.Directory;
     import System.Posix.Process;
     import System.Posix.Signals;
     import System.Posix.User;
+    import Foreign.Ptr;
+    import Foreign.Marshal;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Types();
 
@@ -64,6 +69,37 @@ module Data.Argo.StdLib.Process(processFunctions) where
         toValue pid = toValue (processID pid);
     };
 
+    fdReadBytes :: Fd -> ByteCount -> IO (Maybe ByteString);
+    fdReadBytes fd nbytes = allocaBytes (fromIntegral nbytes) $ \buf -> do
+    {
+        rc <- fdReadBuf fd buf nbytes;
+        case rc of
+        {
+            0 -> return Nothing;
+            n -> do
+            {
+                bs <- packCStringLen (castPtr buf,fromIntegral n);
+                return (Just bs);
+            };
+        };
+    };
+
+    pushAll :: forall m a. (Monad m) => m (Maybe a) -> (Maybe a -> m ()) -> m ();
+    pushAll from to = let
+    {
+        f :: m ();
+        f = do
+        {
+            ma <- from;
+            to ma;
+            case ma of
+            {
+                Just _ -> f;
+                Nothing -> return ();
+            };
+        };
+    } in f;
+
     startProcess :: (?context :: String) => (Maybe String -> Value) -> IO ProcessID;
     startProcess fargs = let
     {
@@ -74,8 +110,24 @@ module Data.Argo.StdLib.Process(processFunctions) where
             Nothing -> [];
         };
         env = fromValue (fargs (Just "env"));
+        mOutPush = fromValue (fargs (Just "out-push"));
     } in do
     {
+        mfd <- case mOutPush of
+        {
+            Just outPush -> do
+            {
+                (readFrom,writeTo) <- createPipe;
+                _ <- forkIO (do
+                {
+                    pushAll (fdReadBytes readFrom 10000) outPush;
+                    closeFd readFrom;
+                    closeFd writeTo;
+                });
+                return (Just writeTo);
+            };
+            Nothing -> return Nothing;
+        };
         forkProcess (do
         {
             setContext (fargs . Just);
@@ -88,10 +140,19 @@ module Data.Argo.StdLib.Process(processFunctions) where
                 setUserID euid;
             }
             else return ();
+            case mfd of
+            {
+                Just fd -> do
+                {
+                    _ <- dupTo fd stdOutput;
+                    return ();
+                };
+                Nothing -> return ();
+            };
             executeFile cmdpath False args env;
         });
     };
-    
+
     runProcess :: (?context :: String) => (Maybe String -> Value) -> IO ();
     runProcess fargs = do
     {
@@ -99,7 +160,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
         ps <- waitProcess pid;
         failProcess ps;
     };
-    
+
     getContext :: (?context::String) => IO (String -> Maybe Value);
     getContext = do
     {
