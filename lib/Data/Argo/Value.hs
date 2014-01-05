@@ -3,8 +3,18 @@ module Data.Argo.Value where
     import Import;
     import qualified Data.ByteString as B;
     import Data.Argo.Number;
+    import Data.Argo.Record;
     
-    data Value = NullValue | BoolValue Bool | NumberValue Number | StringValue String | ArrayValue [Value] | FunctionValue (Value -> Value) | ByteArrayValue ByteString | ActionValue (IO Value);
+    data Value = 
+        NullValue | 
+        BoolValue Bool |
+        NumberValue Number |
+        StringValue String |
+        ArrayValue [Value] | 
+        RecordValue (Record Value) |
+        FunctionValue (Value -> Value) |
+        ByteArrayValue ByteString |
+        ActionValue (IO Value);
     
     instance Show Value where
     {
@@ -28,6 +38,12 @@ module Data.Argo.Value where
             showVals [a] = show a;
             showVals (a:as) = (show a) ++ "," ++ (showVals as);
         };
+        show (RecordValue (MkRecord entries)) = "{" ++ showEntries entries ++ "}" where
+        {
+            showEntries [] = "";
+            showEntries [(s,v)] = (show s) ++ ":" ++ (show v);
+            showEntries ((s,v):as) = (show s) ++ ":" ++ (show v) ++ "," ++ (showEntries as);
+        };
         show (FunctionValue _) = "{...}";
         show (ActionValue _) = "<action>";
     };
@@ -39,6 +55,7 @@ module Data.Argo.Value where
     valueTypeName (StringValue _) = "string";
     valueTypeName (ByteArrayValue _) = "bytes";
     valueTypeName (ArrayValue _) = "array";
+    valueTypeName (RecordValue _) = "record";
     valueTypeName (FunctionValue _) = "function";
     valueTypeName (ActionValue _) = "action";
     
@@ -270,6 +287,20 @@ module Data.Argo.Value where
     instance (FromValue t) => FromValue [t] where
     {
         fromValueMaybe = fromValueMaybeList;
+    };
+    
+
+    -- Record
+    
+    instance (ToValue t) => ToValue (Record t) where
+    {
+        toValue record = RecordValue (fmap toValue record);
+    };
+    
+    instance (FromValue t) => FromValue (Record t) where
+    {
+        fromValueMaybe (RecordValue record) = traverse fromValueMaybe record;
+        fromValueMaybe v = typeFail "record" v;
     };
 
 

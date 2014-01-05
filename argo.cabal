@@ -16,6 +16,7 @@ library
     exposed-modules:
         Data.Argo
         Data.Argo.Value
+        Data.Argo.Record
         Data.Argo.Read
         Data.Argo.StdLib
     other-modules:
