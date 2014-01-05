@@ -44,7 +44,7 @@ module Data.Argo.Value where
             showEntries [(s,v)] = (show s) ++ ":" ++ (show v);
             showEntries ((s,v):as) = (show s) ++ ":" ++ (show v) ++ "," ++ (showEntries as);
         };
-        show (FunctionValue _) = "{...}";
+        show (FunctionValue _) = "{|...|}";
         show (ActionValue _) = "<action>";
     };
     

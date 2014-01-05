@@ -164,22 +164,23 @@ module Data.Argo.Read where
         readQuotedChar = readEscapedChar <|> (satisfy ('"' /=));
 
         goodChar :: Char -> Bool;
-        goodChar '#' = False;
-        goodChar '\\' = False;
-        goodChar ':' = False;
-        goodChar '"' = False;
-        goodChar '{' = False;
-        goodChar '}' = False;
-        goodChar '[' = False;
-        goodChar ']' = False;
-        goodChar '(' = False;
-        goodChar ')' = False;
-        goodChar ',' = False;
-        goodChar ';' = False;
-        goodChar '@' = False;
-        goodChar '=' = False;
-        goodChar '!' = False;
-        goodChar '$' = False;
+        goodChar '#' = False;   -- comment
+        goodChar '\\' = False;  -- char escape
+        goodChar ':' = False;   -- records/functions
+        goodChar '"' = False;   -- string
+        goodChar '{' = False;   -- records/functions
+        goodChar '}' = False;   -- records/functions
+        goodChar '|' = False;   -- functions
+        goodChar '[' = False;   -- arrays
+        goodChar ']' = False;   -- arrays
+        goodChar '(' = False;   -- expression grouping
+        goodChar ')' = False;   -- expression grouping
+        goodChar ',' = False;   -- separator
+        goodChar ';' = False;   -- array first/rest separator
+        goodChar '@' = False;   -- pattern "and"
+        goodChar '=' = False;   -- bindings
+        goodChar '!' = False;   -- actions
+        goodChar '$' = False;   -- library references
         goodChar c = not (isSpace c);
 
         goodREChar :: Char -> Bool;
@@ -273,7 +274,9 @@ module Data.Argo.Read where
         readFunctionPattern = do
         {
             readCharAndWS '{';
+            readCharAndWS '|';
             fields <- readCommaSeparated readPatternField;
+            readCharAndWS '|';
             readCharAndWS '}';
             return ( (matchAll fields));
         } where
@@ -615,7 +618,9 @@ module Data.Argo.Read where
         readFunction = do
         {
             readCharAndWS '{';
+            readCharAndWS '|';
             fields <- readCommaSeparated readField;
+            readCharAndWS '|';
             readCharAndWS '}';
             return (assembleFunction fields);
         } where
