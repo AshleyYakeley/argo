@@ -8,6 +8,7 @@ module Data.Argo.Read where
     import Language.Expression.Mono;
     import Language.Expression.Regular;
     import Data.Argo.Number;
+    import Data.Argo.Record;
     import Data.Argo.Value;
 
     data Reference = ThisReference | LibReference String | SymbolReference String deriving (Eq);
@@ -219,6 +220,9 @@ module Data.Argo.Read where
             readWS;
             return (first:rest);
         };
+
+        readFieldLabel :: Parser String;
+        readFieldLabel = readQuotedString <|> readIdentifier;
 
         readUnderscored :: Parser (Value -> Bool);
         readUnderscored = do
@@ -614,14 +618,29 @@ module Data.Argo.Read where
         argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
          (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
-        readFunction :: Parser (ArgoExpression (Value -> Value));
-        readFunction = do
+        readRecordInside :: Parser (ArgoExpression (Record Value));
+        readRecordInside = do
         {
-            readCharAndWS '{';
+            fields <- readCommaSeparated readField;
+             return (fmap MkRecord (traverse (\(s,exp) -> fmap (\v -> (s,v)) exp) fields));
+        } where
+        {
+            readField :: Parser (String,ArgoExpression Value);
+            readField = do
+            {
+                fieldLabel <- readFieldLabel;
+                readCharAndWS ':';
+                fieldValueExpr <- readExpression;
+                return (fieldLabel,fieldValueExpr);
+            };
+        };
+
+        readFunctionInside :: Parser (ArgoExpression (Value -> Value));
+        readFunctionInside = do
+        {
             readCharAndWS '|';
             fields <- readCommaSeparated readField;
             readCharAndWS '|';
-            readCharAndWS '}';
             return (assembleFunction fields);
         } where
         {
@@ -645,6 +664,15 @@ module Data.Argo.Read where
                 Just r -> r;
                 Nothing -> vv v;
             }) (argoBind pat exp) (assembleFunction ps);
+        };
+
+        readBraced :: Parser (ArgoExpression Value);
+        readBraced = do
+        {
+            readCharAndWS '{';
+            expr <- (fmap (fmap toValue) readFunctionInside) <|> (fmap (fmap toValue) readRecordInside);
+            readCharAndWS '}';
+            return expr;
         };
 
         readArray :: Parser (ArgoExpression [Value]);
@@ -806,9 +834,8 @@ module Data.Argo.Read where
             readCharAndWS ')';
             return exp;
         } <|>
-        fmap (fmap toValue) readFunction <|>
-        fmap monoValueSymbol readDollarReference <|>
-        fmap (fmap toValue) readFunction;
+        readBraced <|>
+        fmap monoValueSymbol readDollarReference;
 
         readExpressionNoLet :: Parser (ArgoExpression Value);
         readExpressionNoLet = do
