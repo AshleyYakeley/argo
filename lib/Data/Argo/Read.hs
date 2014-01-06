@@ -164,15 +164,30 @@ module Data.Argo.Read where
             return v;
         };
 
-        readFunctionPattern :: Parser (ArgoPatternExpression (Value -> Value));
-        readFunctionPattern = do
+        readObjectPatternInside :: Parser (ArgoPatternExpression (Object Value));
+        readObjectPatternInside = do
         {
-            readCharAndWS '{';
+            fields <- readCommaSeparated readObjectField;
+            return (matchAll fields);
+        } where
+        {
+            readObjectField :: Parser (ArgoPatternExpression (Object Value));
+            readObjectField = do
+            {
+                fieldLabel <- readFieldLabel;
+                readCharAndWS ':';
+                pat <- readPattern;
+                return (subPattern (\obj -> objectLookup obj fieldLabel) pat);
+            };
+        };
+
+        readFunctionPatternInside :: Parser (ArgoPatternExpression (Value -> Value));
+        readFunctionPatternInside = do
+        {
             readCharAndWS '|';
             fields <- readCommaSeparated readPatternField;
             readCharAndWS '|';
-            readCharAndWS '}';
-            return ( (matchAll fields));
+            return (matchAll fields);
         } where
         {
             readPatternField :: Parser (ArgoPatternExpression (Value -> Value));
@@ -188,6 +203,17 @@ module Data.Argo.Read where
                 pat <- readPattern;
                 return (subPattern (\f -> Just (f arg)) pat);
             };
+        };
+
+        readBracedPattern :: Parser (ArgoPatternExpression Value);
+        readBracedPattern = do
+        {
+            readCharAndWS '{';
+            patexpr <- 
+                fmap (subPattern fromValueMaybe) readFunctionPatternInside <|>
+                fmap (subPattern fromValueMaybe) readObjectPatternInside;
+            readCharAndWS '}';
+            return patexpr;
         };
 
         readSinglePattern :: Parser (ArgoPatternExpression Value);
@@ -215,7 +241,7 @@ module Data.Argo.Read where
             return (patternMatch match);
         } <|>
         readArrayPattern <|>
-        fmap (subPattern fromValueMaybe) readFunctionPattern <|> do
+        readBracedPattern <|> do
         {
             regexp <- readRegularExpression;
             return (subPattern fromValueMaybe (regexSingle regexp));
