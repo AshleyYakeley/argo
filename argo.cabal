@@ -22,6 +22,8 @@ library
     other-modules:
         Import
         Data.Argo.Number
+        Data.Argo.Read.Lexical
+        Data.Argo.Read.RegularExpression
         Data.Argo.StdLib.Types
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
