@@ -3,7 +3,7 @@ module Data.Argo.Value where
     import Import;
     import qualified Data.ByteString as B;
     import Data.Argo.Number;
-    import Data.Argo.Record;
+    import Data.Argo.Object;
     
     data Value = 
         NullValue | 
@@ -11,7 +11,7 @@ module Data.Argo.Value where
         NumberValue Number |
         StringValue String |
         ArrayValue [Value] | 
-        RecordValue (Record Value) |
+        ObjectValue (Object Value) |
         FunctionValue (Value -> Value) |
         ByteArrayValue ByteString |
         ActionValue (IO Value);
@@ -38,7 +38,7 @@ module Data.Argo.Value where
             showVals [a] = show a;
             showVals (a:as) = (show a) ++ "," ++ (showVals as);
         };
-        show (RecordValue (MkRecord entries)) = "{" ++ showEntries entries ++ "}" where
+        show (ObjectValue (MkObject entries)) = "{" ++ showEntries entries ++ "}" where
         {
             showEntries [] = "";
             showEntries [(s,v)] = (show s) ++ ":" ++ (show v);
@@ -55,7 +55,7 @@ module Data.Argo.Value where
     valueTypeName (StringValue _) = "string";
     valueTypeName (ByteArrayValue _) = "bytes";
     valueTypeName (ArrayValue _) = "array";
-    valueTypeName (RecordValue _) = "record";
+    valueTypeName (ObjectValue _) = "object";
     valueTypeName (FunctionValue _) = "function";
     valueTypeName (ActionValue _) = "action";
     
@@ -290,17 +290,17 @@ module Data.Argo.Value where
     };
     
 
-    -- Record
+    -- Object
     
-    instance (ToValue t) => ToValue (Record t) where
+    instance (ToValue t) => ToValue (Object t) where
     {
-        toValue record = RecordValue (fmap toValue record);
+        toValue object = ObjectValue (fmap toValue object);
     };
     
-    instance (FromValue t) => FromValue (Record t) where
+    instance (FromValue t) => FromValue (Object t) where
     {
-        fromValueMaybe (RecordValue record) = traverse fromValueMaybe record;
-        fromValueMaybe v = typeFail "record" v;
+        fromValueMaybe (ObjectValue object) = traverse fromValueMaybe object;
+        fromValueMaybe v = typeFail "object" v;
     };
 
 

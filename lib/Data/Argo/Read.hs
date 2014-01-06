@@ -8,7 +8,7 @@ module Data.Argo.Read where
     import Language.Expression.Mono;
     import Language.Expression.Regular;
     import Data.Argo.Number;
-    import Data.Argo.Record;
+    import Data.Argo.Object;
     import Data.Argo.Value;
 
     data Reference = ThisReference | LibReference String | SymbolReference String deriving (Eq);
@@ -167,10 +167,10 @@ module Data.Argo.Read where
         goodChar :: Char -> Bool;
         goodChar '#' = False;   -- comment
         goodChar '\\' = False;  -- char escape
-        goodChar ':' = False;   -- records/functions
+        goodChar ':' = False;   -- objects/functions
         goodChar '"' = False;   -- string
-        goodChar '{' = False;   -- records/functions
-        goodChar '}' = False;   -- records/functions
+        goodChar '{' = False;   -- objects/functions
+        goodChar '}' = False;   -- objects/functions
         goodChar '|' = False;   -- functions
         goodChar '[' = False;   -- arrays
         goodChar ']' = False;   -- arrays
@@ -618,11 +618,11 @@ module Data.Argo.Read where
         argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
          (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
 
-        readRecordInside :: Parser (ArgoExpression (Record Value));
-        readRecordInside = do
+        readObjectInside :: Parser (ArgoExpression (Object Value));
+        readObjectInside = do
         {
             fields <- readCommaSeparated readField;
-             return (fmap MkRecord (traverse (\(s,exp) -> fmap (\v -> (s,v)) exp) fields));
+             return (fmap MkObject (traverse (\(s,exp) -> fmap (\v -> (s,v)) exp) fields));
         } where
         {
             readField :: Parser (String,ArgoExpression Value);
@@ -670,7 +670,7 @@ module Data.Argo.Read where
         readBraced = do
         {
             readCharAndWS '{';
-            expr <- (fmap (fmap toValue) readFunctionInside) <|> (fmap (fmap toValue) readRecordInside);
+            expr <- (fmap (fmap toValue) readFunctionInside) <|> (fmap (fmap toValue) readObjectInside);
             readCharAndWS '}';
             return expr;
         };

@@ -81,16 +81,16 @@ module Main where
         evalTest "[51;[]]" (return (ArrayValue [NumberValue 51])),
         evalTest "[false,51;[null,35]]" (return (ArrayValue [BoolValue False,NumberValue 51,NullValue,NumberValue 35])),
 
-        -- record type
-        evalTest "{}" (return (RecordValue (MkRecord []))),
-        evalTest "{\"a\":1}" (return (RecordValue (MkRecord [("a",NumberValue 1)]))),
-        evalTest "{\"a\":1,}" (return (RecordValue (MkRecord [("a",NumberValue 1)]))),
-        evalTest "{b:2}" (return (RecordValue (MkRecord [("b",NumberValue 2)]))),
-        evalTest "{b:2,}" (return (RecordValue (MkRecord [("b",NumberValue 2)]))),
-        evalTest "{\"a\":1,b:2}" (return (RecordValue (MkRecord [("a",NumberValue 1),("b",NumberValue 2)]))),
-        evalTest "{\"a\":1,b:2,}" (return (RecordValue (MkRecord [("a",NumberValue 1),("b",NumberValue 2)]))),
-        evalTest "{a:1,\"b\":2}" (return (RecordValue (MkRecord [("a",NumberValue 1),("b",NumberValue 2)]))),
-        evalTest "{a:1,\"b\":2,}" (return (RecordValue (MkRecord [("a",NumberValue 1),("b",NumberValue 2)]))),
+        -- object type
+        evalTest "{}" (return (ObjectValue (MkObject []))),
+        evalTest "{\"a\":1}" (return (ObjectValue (MkObject [("a",NumberValue 1)]))),
+        evalTest "{\"a\":1,}" (return (ObjectValue (MkObject [("a",NumberValue 1)]))),
+        evalTest "{b:2}" (return (ObjectValue (MkObject [("b",NumberValue 2)]))),
+        evalTest "{b:2,}" (return (ObjectValue (MkObject [("b",NumberValue 2)]))),
+        evalTest "{\"a\":1,b:2}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
+        evalTest "{\"a\":1,b:2,}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
+        evalTest "{a:1,\"b\":2}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
+        evalTest "{a:1,\"b\":2,}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
 
         -- function type
         evalTest "{||}" (return (FunctionValue id)),
