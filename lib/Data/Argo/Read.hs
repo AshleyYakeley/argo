@@ -448,8 +448,8 @@ module Data.Argo.Read where
             }
         };
 
-        readTerm :: Parser (ArgoExpression Value);
-        readTerm = do
+        readTermNoPostfix :: Parser (ArgoExpression Value);
+        readTermNoPostfix = do
         {
             s <- readQuotedString;
             return (pure (toValue s));
@@ -481,6 +481,29 @@ module Data.Argo.Read where
         } <|>
         readBraced <|>
         fmap monoValueSymbol readDollarReference;
+
+        postfixLookup :: String -> Value -> Value;
+        postfixLookup fieldLabel val = case objectLookup (fromValue val) fieldLabel of
+        {
+            Just r -> r;
+            Nothing -> toValue ();
+        };
+
+        readPostfix :: Parser (ArgoExpression (Value -> Value));
+        readPostfix = do
+        {
+            readCharAndWS '.';
+            fieldLabel <- readFieldLabel;
+            return (pure (postfixLookup fieldLabel));
+        };
+
+        readTerm :: Parser (ArgoExpression Value);
+        readTerm = do
+        {
+            term <- readTermNoPostfix;
+            postfixes <- many readPostfix;
+            return (foldl (\t f -> f <*> t) term postfixes);
+        };
 
         readExpressionNoLet :: Parser (ArgoExpression Value);
         readExpressionNoLet = do

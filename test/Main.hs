@@ -91,6 +91,10 @@ module Main where
         evalTest "{\"a\":1,b:2,}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
         evalTest "{a:1,\"b\":2}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
         evalTest "{a:1,\"b\":2,}" (return (ObjectValue (MkObject [("a",NumberValue 1),("b",NumberValue 2)]))),
+        evalTest "{a:1,b:2}.a" (return (NumberValue 1)),
+        evalTest "{a:1,b:2}.b" (return (NumberValue 2)),
+        evalTest "{a:1,b:2}.\"b\"" (return (NumberValue 2)),
+        evalTest "{a:1,b:{c:3}}.b.c" (return (NumberValue 3)),
 
         -- function type
         evalTest "{||}" (return (FunctionValue id)),

@@ -67,6 +67,7 @@ module Data.Argo.Read.Lexical where
     goodChar '=' = False;   -- bindings
     goodChar '!' = False;   -- actions
     goodChar '$' = False;   -- library references
+    goodChar '.' = False;   -- object field specifier
     goodChar c = not (isSpace c);
 
     goodREChar :: Char -> Bool;
