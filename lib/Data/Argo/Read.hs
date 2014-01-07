@@ -357,8 +357,8 @@ module Data.Argo.Read where
         argoStrictBind :: ArgoPatternExpression Value -> ArgoExpression r -> ArgoExpression (Value -> r);
         argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
 
-        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
-        readBinding readValExpr = do
+        readLet :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
+        readLet = do
         {
             (patExpr,argExprs) <- try (do
             {
@@ -368,9 +368,7 @@ module Data.Argo.Read where
                 return (patExpr,argExprs);
             });
             bodyExpr <- readExpression;
-            readCharAndWS ',';
-            valExpr <- readValExpr;
-            return ((argoStrictBind patExpr valExpr) <*> (abstractExprs argExprs bodyExpr));
+            return (patExpr,abstractExprs argExprs bodyExpr);
         } where
         {
             abstractExprs [] bodyExpr = bodyExpr;
@@ -384,6 +382,15 @@ module Data.Argo.Read where
                 Just r -> r;
                 Nothing -> errorC "no match";
             });
+        };
+
+        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
+        readBinding readValExpr = do
+        {
+            (patExpr,bindExpr) <- readLet;
+            readCharAndWS ',';
+            valExpr <- readValExpr;
+            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
         };
 
         readActionRest :: Parser (ArgoExpression (IO Value));
