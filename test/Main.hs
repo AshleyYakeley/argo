@@ -157,6 +157,8 @@ module Main where
         evalTest "b=(a=1,a),b" (return (NumberValue 1)),
         evalTest "b=a=1,a,b" (return (NumberValue 1)),
         evalTest "a=1,b=2,[b,a]" (return (ArrayValue [NumberValue 2,NumberValue 1])),
+        evalTest "a=1,b=a,b" (return (NumberValue 1)),
+        evalTest "b=a,a=1,b" (return (NumberValue 1)),
         evalTest "id x=x,id 4" (return (NumberValue 4)),
         evalTest "k x y=x,k 5 6" (return (NumberValue 5)),
         evalTest "pp x y z = z,pp 6 7 8" (return (NumberValue 8))
@@ -228,6 +230,7 @@ module Main where
         evalTest "$\"std\" \"+\" 3 4" (return (NumberValue 7)),
         evalTest "$\"std\" \"fix\"" (return (FunctionValue id)),
         evalTest "$\"std\" \"fix\" {|fib:{|0:0,1:1,n:$\"std\" \"+\" (fib ($\"std\" \"-\" n 1)) (fib ($\"std\" \"-\" n 2))|}|} 11" (return (NumberValue 89)),
+        evalTest "fib={|0:0,1:1,n:$\"std\" \"+\" (fib ($\"std\" \"-\" n 1)) (fib ($\"std\" \"-\" n 2))|},fib 11" (return (NumberValue 89)),
 
         evalTest "$\"std\" \"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
         evalTest "$\"std\" \"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),

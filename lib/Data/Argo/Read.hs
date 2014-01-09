@@ -259,9 +259,38 @@ module Data.Argo.Read where
             return (matchAll (pat1:patr));
         };
 
-        argoBind :: ArgoPatternExpression Value -> ArgoExpression r -> ArgoExpression (Value -> Maybe r);
+        argoBind :: ArgoPatternExpression a -> ArgoExpression r -> ArgoExpression (a -> Maybe r);
         argoBind pat exp = fmap (\(Compose (Compose vmir)) v -> fmap runIdentity (vmir v))
          (toSimpleValueExpression (monoPatternBind (monoWitMap SymbolReference pat) exp));
+
+        argoStrictBind :: ArgoPatternExpression a -> ArgoExpression r -> ArgoExpression (a -> r);
+        argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
+
+        -- let pat = bind in val
+        -- ==> (\pat -> val) bind
+        patternBind :: ArgoPatternExpression a -> ArgoExpression a -> ArgoExpression r -> ArgoExpression r;
+        patternBind patExpr bindExpr valExpr = (argoStrictBind patExpr valExpr) <*> bindExpr;
+
+        -- letrec pat = bind in val
+        -- ==> let pat = fix (\pat -> bind) in val
+        patternRecBind :: (ArgoPatternExpression a,ArgoExpression a) -> ArgoExpression r -> ArgoExpression r;
+        patternRecBind (patExpr,bindExpr) valExpr = patternBind patExpr (fmap fix (argoStrictBind patExpr bindExpr)) valExpr;
+
+        combineBinds :: (forall b. (ArgoPatternExpression b,ArgoExpression b) -> r) -> [(ArgoPatternExpression a,ArgoExpression a)] -> r;
+        combineBinds f [] = f (pure (),pure ());
+        combineBinds f ((pat,bind):binds) = combineBinds (\(pat1,bind1) -> f (patternMatchPair pat pat1,liftA2 (,) bind bind1)) binds;
+
+        recursiveBind :: [(ArgoPatternExpression a,ArgoExpression a)] -> ArgoExpression r -> ArgoExpression r;
+        recursiveBind [] = id;  -- optimisation for common case
+        recursiveBind binds = combineBinds patternRecBind binds;
+
+        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
+        readBinding readValExpr = do
+        {
+            (patExpr,bindExpr) <- readLetComma;
+            valExpr <- readValExpr;
+            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
+        };
 
         readObjectInside :: Parser (ArgoExpression (Object Value));
         readObjectInside = do
@@ -354,11 +383,8 @@ module Data.Argo.Read where
             return (fmap fromValue exp);
         };
 
-        argoStrictBind :: ArgoPatternExpression Value -> ArgoExpression r -> ArgoExpression (Value -> r);
-        argoStrictBind patExpr valExpr = fmap (\vmr v -> fromMaybe (errorC "unmatched binding") (vmr v)) (argoBind patExpr valExpr);
-
-        readLet :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
-        readLet = do
+        readLetComma :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
+        readLetComma = do
         {
             (patExpr,argExprs) <- try (do
             {
@@ -368,6 +394,7 @@ module Data.Argo.Read where
                 return (patExpr,argExprs);
             });
             bodyExpr <- readExpression;
+            readCharAndWS ',';
             return (patExpr,abstractExprs argExprs bodyExpr);
         } where
         {
@@ -382,15 +409,6 @@ module Data.Argo.Read where
                 Just r -> r;
                 Nothing -> errorC "no match";
             });
-        };
-
-        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
-        readBinding readValExpr = do
-        {
-            (patExpr,bindExpr) <- readLet;
-            readCharAndWS ',';
-            valExpr <- readValExpr;
-            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
         };
 
         readActionRest :: Parser (ArgoExpression (IO Value));
@@ -524,7 +542,12 @@ module Data.Argo.Read where
         };
 
         readExpression :: Parser (ArgoExpression Value);
-        readExpression = readBinding readExpression <|> readExpressionNoLet;
+        readExpression = do
+        {
+            bindings <- many readLetComma;
+            expr <- readExpressionNoLet;
+            return (recursiveBind bindings expr);
+        };
 
         readExpressionToEnd :: Parser (ArgoExpression Value);
         readExpressionToEnd = do
