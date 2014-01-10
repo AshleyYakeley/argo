@@ -174,8 +174,12 @@ module Data.Argo.Read where
             readObjectField :: Parser (ArgoPatternExpression (Object Value));
             readObjectField = do
             {
-                fieldLabel <- readFieldLabel;
-                readCharAndWS ':';
+                fieldLabel <- option "" (try (do
+                {
+                    fieldLabel <- readFieldLabel;
+                    readCharAndWS ':';
+                    return fieldLabel;
+                }));
                 pat <- readPattern;
                 return (subPattern (\obj -> objectLookup obj fieldLabel) pat);
             };
@@ -193,13 +197,9 @@ module Data.Argo.Read where
             readPatternField :: Parser (ArgoPatternExpression (Value -> Value));
             readPatternField = do
             {
-                arg <- option (toValue ()) (try (do
-                {
-                    -- arg <- readExpression;
-                    arg <- readConstExpression;
-                    readCharAndWS ':';
-                    return arg;
-                }));
+                -- arg <- readExpression;
+                arg <- readConstExpression;
+                readCharAndWS ':';
                 pat <- readPattern;
                 return (subPattern (\f -> Just (f arg)) pat);
             };
@@ -302,8 +302,12 @@ module Data.Argo.Read where
             readField :: Parser (String,ArgoExpression Value);
             readField = do
             {
-                fieldLabel <- readFieldLabel;
-                readCharAndWS ':';
+                fieldLabel <- option "" (try (do
+                {
+                    fieldLabel <- readFieldLabel;
+                    readCharAndWS ':';
+                    return fieldLabel;
+                }));
                 fieldValueExpr <- readExpression;
                 return (fieldLabel,fieldValueExpr);
             };
@@ -321,12 +325,8 @@ module Data.Argo.Read where
             readField :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
             readField = do
             {
-                pat <- option (patternMatch (isValue ())) (try (do
-                {
-                    pat <- readPattern;
-                    readCharAndWS ':';
-                    return pat;
-                }));
+                pat <- readPattern;
+                readCharAndWS ':';
                 result <- readExpression;
                 return (pat,result);
             };
