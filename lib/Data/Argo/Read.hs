@@ -160,7 +160,7 @@ module Data.Argo.Read where
         readConstExpression = do
         {
             exp <- readExpression;
-            (Identity v) <- monoEvaluateExpression (\_ -> mzero) exp;
+            (Identity v) <- monoEvaluateExpression (\s -> parserFail ("expression not constant, open on " ++ show s)) exp;
             return v;
         };
 
@@ -411,6 +411,23 @@ module Data.Argo.Read where
             });
         };
 
+        readBinderComma :: Parser [(ArgoPatternExpression Value,ArgoExpression Value)];
+        readBinderComma = do
+        {
+            readCharAndWS '@';
+            val <- readConstExpression;
+            readCharAndWS ',';
+            case val of
+            {
+                ObjectValue (MkObject binds) -> return (fmap (\(n,v) -> (monoPatternSymbol n,pure v)) binds);
+                _ -> mzero;
+            };
+        } <|> do
+        {
+            bind <- readLetComma;
+            return [bind];
+        };
+
         readActionRest :: Parser (ArgoExpression (IO Value));
         readActionRest = do
         {
@@ -544,9 +561,9 @@ module Data.Argo.Read where
         readExpression :: Parser (ArgoExpression Value);
         readExpression = do
         {
-            bindings <- many readLetComma;
+            bindingss <- many readBinderComma;
             expr <- readExpressionNoLet;
-            return (recursiveBind bindings expr);
+            return (recursiveBind (concat bindingss) expr);
         };
 
         readExpressionToEnd :: Parser (ArgoExpression Value);

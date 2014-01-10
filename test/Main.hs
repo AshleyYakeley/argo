@@ -161,7 +161,13 @@ module Main where
         evalTest "b=a,a=1,b" (return (NumberValue 1)),
         evalTest "id x=x,id 4" (return (NumberValue 4)),
         evalTest "k x y=x,k 5 6" (return (NumberValue 5)),
-        evalTest "pp x y z = z,pp 6 7 8" (return (NumberValue 8))
+        evalTest "pp x y z = z,pp 6 7 8" (return (NumberValue 8)),
+
+        -- @-binding
+        evalTest "@{\"a\":1},a" (return (NumberValue 1)),
+        evalTest "b=2,@{\"a\":1},[a,b]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
+        evalTest "@{\"a\":1},b=2,[a,b]" (return (ArrayValue [NumberValue 1,NumberValue 2])),
+        evalTest "c=b,@{a:1},b=2,[a,b,c]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 2]))
     ] ++ concat
         -- pattern matching wildcard & type
     [
