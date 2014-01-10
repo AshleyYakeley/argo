@@ -8,6 +8,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     import System.Posix.Files;
     import System.Posix.Temp;
     import qualified Data.ByteString as B;
+    import Data.Argo.Object;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Types();
     
@@ -23,15 +24,13 @@ module Data.Argo.StdLib.File(fileFunctions) where
     
     instance ToValue FileStatus where
     {
-        toValue fs = toValue fsf where
-        {
-            fsf :: String -> Value;
-            fsf "owner" = toValue (fileOwner fs);
-            fsf "group" = toValue (fileGroup fs);
-            fsf "size" = toValue (fileSize fs);
-            fsf "type" = toValue (fileType fs);
-            fsf _ = toValue ();
-        };
+        toValue fs = toValue (MkObject
+        [
+            ("owner",toValue (fileOwner fs)),
+            ("group",toValue (fileGroup fs)),
+            ("size",toValue (fileSize fs)),
+            ("type",toValue (fileType fs))
+        ]);
     };
 
     pathStatus :: FilePath -> IO (Maybe FileStatus);
@@ -89,29 +88,31 @@ module Data.Argo.StdLib.File(fileFunctions) where
         goodItem _ = True;
     };
 
-    fileFunctions :: (?context :: String) => String -> Maybe Value;
-    fileFunctions "path-concat" = Just (toValue pathConcat);
-    fileFunctions "path-split" = Just (toValue splitPath);
-    fileFunctions "path-split-name" = Just (toValue splitFileName);
-    fileFunctions "path-rename" = Just (toValue rename);
-    fileFunctions "path-touch" = Just (toValue touchFile);
-    fileFunctions "path-setown" = Just (toValue setOwnerAndGroup);
-    fileFunctions "path-status" = Just (toValue pathStatus);
-    fileFunctions "path-type" = Just (toValue pathType);
-    fileFunctions "file-get" = Just (toValue B.readFile);
-    fileFunctions "file-set" = Just (toValue B.writeFile);
-    fileFunctions "file-append" = Just (toValue B.appendFile);
-    fileFunctions "file-remove" = Just (toValue removeLink);
-    fileFunctions "file-rename" = Just (toValue renameFile);
-    fileFunctions "file-copy" = Just (toValue copyFile);
-    fileFunctions "file-link" = Just (toValue createLink);
-    fileFunctions "directory-create" = Just (toValue (createDirectoryIfMissing True));
-    fileFunctions "directory-remove" = Just (toValue removeDirectoryRecursive);
-    fileFunctions "directory-contents" = Just (toValue directoryContents);
-    fileFunctions "slink-create" = Just (toValue createSymbolicLink);
-    fileFunctions "slink-get" = Just (toValue readSymbolicLink);
-    fileFunctions "slink-setown" = Just (toValue setSymbolicLinkOwnerAndGroup);
-    fileFunctions "temp-file-with" = Just (toValue withTempFile);
-    fileFunctions "temp-directory-with" = Just (toValue withTempDir);
-    fileFunctions _ = Nothing;
+    fileFunctions :: (?context :: String) => [(String,Value)];
+    fileFunctions =
+    [
+        ("path-concat",toValue pathConcat),
+        ("path-split",toValue splitPath),
+        ("path-split-name",toValue splitFileName),
+        ("path-rename",toValue rename),
+        ("path-touch",toValue touchFile),
+        ("path-setown",toValue setOwnerAndGroup),
+        ("path-status",toValue pathStatus),
+        ("path-type",toValue pathType),
+        ("file-get",toValue B.readFile),
+        ("file-set",toValue B.writeFile),
+        ("file-append",toValue B.appendFile),
+        ("file-remove",toValue removeLink),
+        ("file-rename",toValue renameFile),
+        ("file-copy",toValue copyFile),
+        ("file-link",toValue createLink),
+        ("directory-create",toValue (createDirectoryIfMissing True)),
+        ("directory-remove",toValue removeDirectoryRecursive),
+        ("directory-contents",toValue directoryContents),
+        ("slink-create",toValue createSymbolicLink),
+        ("slink-get",toValue readSymbolicLink),
+        ("slink-setown",toValue setSymbolicLinkOwnerAndGroup),
+        ("temp-file-with",toValue withTempFile),
+        ("temp-directory-with",toValue withTempDir)
+    ];
 }

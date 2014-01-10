@@ -2,7 +2,7 @@ module Data.Argo.Object where
 {
     import Import;
     
-    newtype Object v = MkObject [(String,v)];
+    newtype Object v = MkObject {unObject :: [(String,v)]};
     
     instance Functor Object where
     {

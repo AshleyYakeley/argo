@@ -16,6 +16,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
     import System.Posix.User;
     import Foreign.Ptr;
     import Foreign.Marshal;
+    import Data.Argo.Object;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Types();
 
@@ -100,17 +101,21 @@ module Data.Argo.StdLib.Process(processFunctions) where
         };
     } in f;
 
-    startProcess :: (?context :: String) => (Maybe String -> Value) -> IO ProcessID;
+    startProcess :: (?context :: String) => Object Value -> IO ProcessID;
     startProcess fargs = let
     {
-        cmdpath = fromValue (fargs Nothing);
-        args = case fromValue (fargs (Just "args")) of
+        cmdpath = case objectLookup fargs "" of
         {
-            Just a -> a;
+            Just v -> fromValue v;
+            Nothing -> errorC "missing path";
+        };
+        args = case objectLookup fargs "args" of
+        {
+            Just a -> fromValue a;
             Nothing -> [];
         };
-        env = fromValue (fargs (Just "env"));
-        mOutPush = fromValue (fargs (Just "out-push"));
+        env = fmap (unObject . fromValue) (objectLookup fargs "env");
+        mOutPush = fmap fromValue (objectLookup fargs "out-push");
     } in do
     {
         mfd <- case mOutPush of
@@ -130,7 +135,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
         };
         forkProcess (do
         {
-            setContext (fargs . Just);
+            setContext fargs;
             -- set real userid to the effective userid
             ruid <- getRealUserID;
             if ruid == 0 then do
@@ -153,7 +158,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
         });
     };
 
-    runProcess :: (?context :: String) => (Maybe String -> Value) -> IO ();
+    runProcess :: (?context :: String) => Object Value -> IO ();
     runProcess fargs = do
     {
         pid <- startProcess fargs;
@@ -161,7 +166,7 @@ module Data.Argo.StdLib.Process(processFunctions) where
         failProcess ps;
     };
 
-    getContext :: (?context::String) => IO (String -> Maybe Value);
+    getContext :: (?context::String) => IO (Object Value);
     getContext = do
     {
         ruid <- getRealUserID;
@@ -173,55 +178,54 @@ module Data.Argo.StdLib.Process(processFunctions) where
         groups <- getGroups;
         env <- getEnvironment;
         wd <- getWorkingDirectory;
-        return (\s -> case s of
-        {
-            "real-user" -> Just (toValue ruid);
---            "real-username" -> Just (toValue rusername);
-            "real-group" -> Just (toValue rgid);
-            "user" -> Just (toValue euid);
---            "username" -> Just (toValue eusername);
-            "group" -> Just (toValue egid);
-            "groups" -> Just (toValue groups);
-            "environment" -> Just (toValue env);
-            "wd" -> Just (toValue wd);
-            _ -> Nothing;
-        });
+        return (MkObject
+        [
+            ("real-user",toValue ruid),
+--            ("real-username",toValue rusername),
+            ("real-group",toValue rgid),
+            ("user",toValue euid),
+--            ("username",toValue eusername),
+            ("group",toValue egid),
+            ("groups",toValue groups),
+            ("environment",toValue env),
+            ("wd",toValue wd)
+        ]);
     };
 
-    setContext :: (?context :: String) => (String -> Value) -> IO ();
+    setContext :: (?context :: String) => Object Value -> IO ();
     setContext args = do
     {
-        case fromValue (args "user") of
+        case objectLookup args "user" of
         {
-            Just uid -> setEffectiveUserID uid;
+            Just uid -> setEffectiveUserID (fromValue uid);
             Nothing -> return ();
         };
-        case fromValue (args "group") of
+        case objectLookup args "group" of
         {
-            Just gid -> setEffectiveGroupID gid;
+            Just gid -> setEffectiveGroupID (fromValue gid);
             Nothing -> return ();
         };
-        case fromValue (args "environment") of
+        case objectLookup args "environment" of
         {
-            Just env -> setEnvironment env;
+            Just env -> setEnvironment (fromValue env);
             Nothing -> return ();
         };
-        case fromValue (args "wd") of
+        case objectLookup args "wd" of
         {
-            Just wd -> changeWorkingDirectory wd;
+            Just wd -> changeWorkingDirectory (fromValue wd);
             Nothing -> return ();
         };
     };
 
     withContext :: (?context :: String) =>
-     (String -> Value) -> IO Value -> IO Value;
+     Object Value -> IO Value -> IO Value;
     withContext args f0 = let
     {
-        f1 = withThing getEnvironment setEnvironment (fromValue (args "environment")) f0;
+        f1 = withThing getEnvironment setEnvironment (fmap fromValue (objectLookup args "environment")) f0;
         -- low-privilege user must be "inside" group and WD
-        f2 = withThingCheck getEffectiveUserID setEffectiveUserID (fromValue (args "user")) f1;
-        f3 = withThingCheck getEffectiveGroupID setEffectiveGroupID (fromValue (args "group")) f2;
-        f4 = withThingCheck getWorkingDirectory changeWorkingDirectory (fromValue (args "wd")) f3;
+        f2 = withThingCheck getEffectiveUserID setEffectiveUserID (fmap fromValue (objectLookup args "user")) f1;
+        f3 = withThingCheck getEffectiveGroupID setEffectiveGroupID (fmap fromValue (objectLookup args "group")) f2;
+        f4 = withThingCheck getWorkingDirectory changeWorkingDirectory (fmap fromValue (objectLookup args "wd")) f3;
     } in f4;
 
     withThing :: IO a -> (a -> IO ()) -> Maybe a -> IO Value -> IO Value;
@@ -248,17 +252,16 @@ module Data.Argo.StdLib.Process(processFunctions) where
 
     instance ToValue UserEntry where
     {
-        toValue ue = toValue (\s -> case s of
-        {
-            "name" -> toValue (userName ue);
-            "password" -> toValue (userPassword ue);
-            "id" -> toValue (userID ue);
-            "group" -> toValue (userGroupID ue);
-            "gecos" -> toValue (userGecos ue);
-            "home" -> toValue (homeDirectory ue);
-            "shell" -> toValue (userShell ue);
-            _ -> errorC ("not in userentry: " ++ s);
-        });
+        toValue ue = toValue (MkObject
+        [
+            ("name",toValue (userName ue)),
+            ("password",toValue (userPassword ue)),
+            ("id",toValue (userID ue)),
+            ("group",toValue (userGroupID ue)),
+            ("gecos",toValue (userGecos ue)),
+            ("home",toValue (homeDirectory ue)),
+            ("shell",toValue (userShell ue))
+        ]);
     };
 
     checkUserEntry :: IO UserEntry -> IO (Maybe UserEntry);
@@ -276,12 +279,14 @@ module Data.Argo.StdLib.Process(processFunctions) where
     getUserEntryForIDMaybe :: UserID -> IO (Maybe UserEntry);
     getUserEntryForIDMaybe uid = checkUserEntry (getUserEntryForID uid);
 
-    processFunctions :: (?context :: String) => String -> Maybe Value;
-    processFunctions "context-get" = Just (toValue getContext);
-    processFunctions "context-with" = Just (toValue withContext);
-    processFunctions "exec-start" = Just (toValue startProcess);
-    processFunctions "exec-run" = Just (toValue runProcess);
-    processFunctions "userentry-id-get" = Just (toValue getUserEntryForIDMaybe);
-    processFunctions "userentry-name-get" = Just (toValue getUserEntryForNameMaybe);
-    processFunctions _ = Nothing;
+    processFunctions :: (?context :: String) => [(String,Value)];
+    processFunctions =
+    [
+        ("context-get",toValue getContext),
+        ("context-with",toValue withContext),
+        ("exec-start",toValue startProcess),
+        ("exec-run",toValue runProcess),
+        ("userentry-id-get",toValue getUserEntryForIDMaybe),
+        ("userentry-name-get",toValue getUserEntryForNameMaybe)
+    ];
 }

@@ -3,6 +3,7 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     import Import;
     import qualified Data.ByteString as B;
     import Data.Argo.Number;
+    import Data.Argo.Object;
     import Data.Argo.Value;
     import Data.Argo.Read;
     import Data.Argo.StdLib.File;
@@ -102,45 +103,46 @@ module Data.Argo.StdLib(stdLib,stdLibValue) where
     forV :: [Value] -> (Value -> IO Value) -> IO [Value];
     forV = for;
 
-    stdLib :: (?context :: String) => String -> Value;
-    stdLib "error" = toValue (errorC :: String -> Value);
+    stdLib :: (?context :: String) => Object Value;
+    stdLib = MkObject
+    ([
+        ("error",toValue (errorC :: String -> Value)),
 
-    stdLib "default" = toValue defaultV;
-    stdLib "function-default" = toValue defaultFunction;
-    stdLib "+" = toValue ((+) :: Rational -> Rational -> Rational);
-    stdLib "-" = toValue ((-) :: Rational -> Rational -> Rational);
-    stdLib "=" = toValue eq;
+        ("default",toValue defaultV),
+        ("function-default",toValue defaultFunction),
+        ("+",toValue ((+) :: Rational -> Rational -> Rational)),
+        ("-",toValue ((-) :: Rational -> Rational -> Rational)),
+        ("=",toValue eq),
 
-    stdLib "show" = toValue (show :: Value -> String);
+        ("show",toValue (show :: Value -> String)),
 
-    stdLib "take" = toValue takeV;
-    stdLib "drop" = toValue dropV;
-    stdLib "string-subst" = toValue subst;
-    stdLib "string-concat" = toValue (concat :: [String] -> String);
-    stdLib "bytes-concat" = toValue B.concat;
-    stdLib "array-concat" = toValue (concat :: [[Value]] -> [Value]);
+        ("take",toValue takeV),
+        ("drop",toValue dropV),
+        ("string-subst",toValue subst),
+        ("string-concat",toValue (concat :: [String] -> String)),
+        ("bytes-concat",toValue B.concat),
+        ("array-concat",toValue (concat :: [[Value]] -> [Value])),
 
-    stdLib "subst" = toValue subst;
+        ("subst",toValue subst),
 
-    stdLib "bytes" = toValue bytes;
-    stdLib "utf-8" = toValue utf8;
+        ("bytes",toValue bytes),
+        ("utf-8",toValue utf8),
 
-    stdLib "stdout" = toValue (hPutStr stdout);
-    stdLib "stderr" = toValue (hPutStr stderr);
+        ("stdout",toValue (hPutStr stdout)),
+        ("stderr",toValue (hPutStr stderr)),
 
-    stdLib "map" = toValue mapV;
-    stdLib "for" = toValue forV;
-    stdLib ">>=" = toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value);
-    stdLib "return" = toValue (return :: Value -> IO Value);
-    stdLib "fail" = toValue (fail :: String -> IO Value);
-    stdLib "fix" = toValue fixV;
-    stdLib "action-fix" = toValue (fixIO :: (Value -> IO Value) -> IO Value);
+        ("map",toValue mapV),
+        ("for",toValue forV),
+        (">>=",toValue ((>>=) :: IO Value -> (Value -> IO Value) -> IO Value)),
+        ("return",toValue (return :: Value -> IO Value)),
+        ("fail",toValue (fail :: String -> IO Value)),
+        ("fix",toValue fixV),
+        ("action-fix",toValue (fixIO :: (Value -> IO Value) -> IO Value)),
 
-    stdLib "argo-read" = toValue argoRead;
-
-    stdLib s | Just r <- fileFunctions s = r;
-    stdLib s | Just r <- processFunctions s = r;
-    stdLib s = errorC ("$\"std\" " ++ (show s) ++ ": not found");
+        ("argo-read",toValue argoRead)
+    ] ++
+    fileFunctions ++
+    processFunctions);
 
     stdLibValue :: (?context :: String) => Value;
     stdLibValue = toValue stdLib;
