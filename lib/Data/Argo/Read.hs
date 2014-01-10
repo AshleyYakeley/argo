@@ -332,7 +332,7 @@ module Data.Argo.Read where
             };
 
             assembleFunction :: [(ArgoPatternExpression Value,ArgoExpression Value)] -> ArgoExpression (Value -> Value);
-            assembleFunction [] = pure (\_ -> toValue ());
+            assembleFunction [] = pure (\_ -> errorC "unmatched function application");
             assembleFunction ((pat,exp):ps) = liftA2 (\vmv vv v -> case vmv v of
             {
                 Just r -> r;

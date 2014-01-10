@@ -130,14 +130,11 @@ module Main where
         evalTest "{|a:12|} 45" (return (NumberValue 12)),
         evalTest "{|a:{|b:a|}|} 27 31" (return (NumberValue 27)),
         evalTest "{|a:{|b:b|}|} 27 31" (return (NumberValue 31)),
-        evalTest "{|null:37|} 45" (return NullValue),
         evalTest "{|null:37|} null" (return (NumberValue 37)),
         evalTest "{|null:37,true:54|} null" (return (NumberValue 37)),
         evalTest "{|null:37,true:54|} true" (return (NumberValue 54)),
-        evalTest "{|null:37,true:54|} false" (return NullValue),
         evalTest "{|null:37,true:54,|} null" (return (NumberValue 37)),
         evalTest "{|null:37,true:54,|} true" (return (NumberValue 54)),
-        evalTest "{|null:37,true:54,|} false" (return NullValue),
 
         -- comments
         evalTest "#\n34" (return (NumberValue 34)),
@@ -193,12 +190,12 @@ module Main where
         patternTests "{\"1\":_number,}" ["{\"1\":2}","{\"1\":3}","{\"1\":4}"] ["null","false","0","\"\"","[]","{}","{||}","{\"1\":null}","{\"2\":2}"],
         patternTests "_function" ["{||}"] ["null","false","0","\"\"","[]"],
         patternTests "{||}" ["{||}","{|1:2|}"] ["null","false","0","\"\"","[]","{}"],
-        patternTests "{|1:2|}" ["{|1:2|}","{|1:2,1:4|}"] ["null","false","0","\"\"","[]","{}","{||}","{|1:3|}","{|1:null|}","{|2:2|}"],
-        patternTests "{|1:2,3:4|}" ["{|1:2,3:4|}"] ["null","false","0","\"\"","[]","{}","{||}","{|1:3|}","{|1:4|}","{|1:null|}","{|2:2|}"],
-        patternTests "{|1:_number|}" ["{|1:2|}","{|1:3|}","{|1:4|}"] ["null","false","0","\"\"","[]","{}","{||}","{|1:null|}","{|2:2|}"],
-        patternTests "{|null:_number|}" ["{|null:2|}","{|null:3|}","{|null:4|}"] ["{|1:2|}","{|1:3|}","{|1:4|}","null","false","0","\"\"","[]","{}","{||}","{|1:null|}","{|2:2|}"],
-        patternTests "{|1:_number,|}" ["{|1:2|}","{|1:3|}","{|1:4|}"] ["null","false","0","\"\"","[]","{}","{||}","{|1:null|}","{|2:2|}"],
-        patternTests "{|null:_number,|}" ["{|null:2|}","{|null:3|}","{|null:4|}"] ["{|1:2|}","{|1:3|}","{|1:4|}","null","false","0","\"\"","[]","{}","{||}","{|1:null|}","{|2:2|}"],
+        patternTests "{|1:2|}" ["{|1:2|}","{|1:2,1:4|}","{|_:2|}"] ["null","false","0","\"\"","[]","{}","{|_:null|}","{|1:3|}","{|1:null|}"],
+        patternTests "{|1:2,3:4|}" ["{|1:2,3:4|}"] ["null","false","0","\"\"","[]","{}"],
+        patternTests "{|1:_number|}" ["{|1:2|}","{|1:3|}","{|1:4|}"] ["null","false","0","\"\"","[]","{}","{|_:null|}","{|1:null|}","{|2:2,_:null|}"],
+        patternTests "{|null:_number|}" ["{|null:2|}","{|null:3|}","{|null:4|}"] ["null","false","0","\"\"","[]","{}"],
+        patternTests "{|1:_number,|}" ["{|1:2|}","{|1:3|}","{|1:4|}"] ["null","false","0","\"\"","[]","{}","{|1:null|}"],
+        patternTests "{|null:_number,|}" ["{|null:2|}","{|null:3|}","{|null:4|}"] ["null","false","0","\"\"","[]","{}","{|_:null|}"],
         patternTests "_@_" ["null","false","0","\"\"","[]","{||}"] [],
         patternTests "a@_number" ["0"] ["null","false","\"\"","[]","{||}"]
     ] ++ concat
