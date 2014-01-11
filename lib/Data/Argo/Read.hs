@@ -475,19 +475,12 @@ module Data.Argo.Read where
         readDollarReference = do
         {
             readCharAndWS '$';
-            do
+            name <- readFieldLabel;
+            case name of
             {
-                name <- readIdentifier;
-                case name of
-                {
-                    "this" -> return ThisReference;
-                    _ -> mzero;
-                };
-            } <|> do
-            {
-                libname <- readQuotedString;
-                return (LibReference libname);
-            }
+                "this" -> return ThisReference;
+                _ -> return (LibReference name);
+            };
         };
 
         readTermNoPostfix :: Parser (ArgoExpression Value);

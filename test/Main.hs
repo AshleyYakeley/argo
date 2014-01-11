@@ -239,6 +239,8 @@ module Main where
 
         evalTest "$\"std\".\"take\" 4 \"abcdefg\"" (return (StringValue "abcd")),
         evalTest "$\"std\".\"drop\" 2 \"abcdefg\"" (return (StringValue "cdefg")),
+        evalTest "$std.take 4 \"abcdefg\"" (return (StringValue "abcd")),
+        evalTest "$std.drop 2 \"abcdefg\"" (return (StringValue "cdefg")),
         evalTest "$\"std\".\"take\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 1,NumberValue 2,NumberValue 3])),
         evalTest "$\"std\".\"drop\" 3 [1,2,3,4,5,6,7]" (return (ArrayValue [NumberValue 4,NumberValue 5,NumberValue 6,NumberValue 7])),
 

@@ -10,46 +10,49 @@ module Main where
     import System.Posix.Terminal;
     import System.Posix.IO;
 
-    interpretArgs :: [String] -> ([FilePath],Maybe FilePath,[String]);
+    data Mode = FileMode FilePath | ExpressionMode String | InteractiveMode | StdInMode | InteractiveOrStdInMode;
+
+    interpretArgs :: [String] -> ([FilePath],Mode,[String]);
     interpretArgs ("-I":dir:rest) = case interpretArgs rest of
     {
-        (dirs,mFilePath,appArgs) -> (dir:dirs,mFilePath,appArgs);
+        (dirs,mode,appArgs) -> (dir:dirs,mode,appArgs);
     };
-    interpretArgs ("-":rest) = ([],Nothing,rest);
-    interpretArgs (s:rest) = ([],Just s,rest);
-    interpretArgs [] = ([],Nothing,[]);
+    interpretArgs ("-e":expr:rest) = ([],ExpressionMode expr,rest);
+    interpretArgs ("-i":rest) = ([],InteractiveMode,rest);
+    interpretArgs ("-":rest) = ([],StdInMode,rest);
+    interpretArgs (s:rest) = ([],FileMode s,rest);
+    interpretArgs [] = ([],InteractiveOrStdInMode,[]);
 
-    run :: String -> [FilePath] -> [String] -> IO String -> IO ();
-    run filename dirs appArgs getter = do
+    runExprNoArgs :: Value -> IO ();
+    runExprNoArgs (ActionValue action) = do
     {
-        s <- getter;
-        r <- let {?context = filename} in evaluateWithDirs dirs s;
-        _ :: Value <- r appArgs;
+        _result <- action;
         return ();
     };
+    runExprNoArgs val = putStrLn (show val);
 
     interact :: [FilePath] -> IO ();
     interact dirs = do
     {
-        putStr "argo> ";
-        s <- getLine;
-        catch (do
+        hSetBuffering stdout NoBuffering;
+        interactLoop;
+    } where
+    {
+        interactLoop = do
         {
-            r <- let {?context = "input"} in evaluateWithDirs dirs s;
-            case r of
+            putStr "argo> ";
+            s <- getLine;
+            catch (do
             {
-                ActionValue action -> do
-                {
-                    result <- action;
-                    putStrLn (show result);
-                };
-                _ -> putStrLn (show r);
-            };
-        }) (\(e :: IOException) -> do
-        {
-            putStrLn (ioeGetErrorString e);
-        });
-        interact dirs;
+                r <- let {?context = "input"} in evaluateWithDirs dirs s;
+                runExprNoArgs r;
+            }) (\(se :: SomeException) -> case fromException se of
+            {
+                Just e -> putStrLn (ioeGetErrorString e);
+                Nothing -> putStrLn (show se);
+            });
+            interactLoop;
+        };
     };
 
     main :: IO ();
@@ -58,22 +61,31 @@ module Main where
         args <- getArgs;
         let
         {
-            (dirs,mFilePath,appArgs) = interpretArgs args;
+            (dirs,mode,appArgs) = interpretArgs args;
+            runIt context getter = let {?context = context} in do
+            {
+                s <- getter;
+                r <- evaluateWithDirs dirs s;
+                runExprNoArgs (case r of
+                {
+                    FunctionValue fn -> fn (toValue appArgs);
+                    val -> val;
+                });
+            };
         };
-        case mFilePath of
+        case mode of
         {
-            Nothing -> do
+            InteractiveOrStdInMode -> do
             {
                 istty <- queryTerminal stdInput;
                 if istty
-                 then do
-                 {
-                    hSetBuffering stdout NoBuffering;
-                    interact dirs;
-                 }
-                 else run "stdin" dirs appArgs getContents;
+                 then interact dirs
+                 else runIt "stdin" getContents;
             };
-            Just filePath -> run filePath dirs appArgs (readFile filePath);
+            StdInMode -> runIt "stdin" getContents;
+            InteractiveMode -> interact dirs;
+            FileMode filePath -> runIt filePath (readFile filePath);
+            ExpressionMode expr -> runIt "expression" (return expr);
         };
     };
 }
