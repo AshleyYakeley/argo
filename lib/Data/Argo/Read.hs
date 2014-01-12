@@ -105,7 +105,7 @@ module Data.Argo.Read where
         readIdentifier :: Parser String;
         readIdentifier = do
         {
-            first <- satisfy isAlpha;
+            first <- readEscapedChar <|> (satisfy isAlpha);
             rest <- many readIdentifierChar;
             readWS;
             return (first:rest);
