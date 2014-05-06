@@ -30,8 +30,8 @@ module Data.Argo.StdLib.Process(processFunctions) where
     processStatus :: (?context :: String) => ProcessStatus -> Maybe String -> Value;
     processStatus (Exited _) Nothing = toValue "exited";
     processStatus (Exited code) (Just "error") = toValue code;
-    processStatus (Terminated _) Nothing = toValue "terminated";
-    processStatus (Terminated signal) (Just "signal") = toValue signal;
+    processStatus (Terminated _ _) Nothing = toValue "terminated";
+    processStatus (Terminated signal _) (Just "signal") = toValue signal;
     processStatus (Stopped _) Nothing = toValue "stopped";
     processStatus (Stopped signal) (Just "signal") = toValue signal;
     processStatus _ (Just _) = toValue ();

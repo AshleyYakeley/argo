@@ -28,7 +28,7 @@ library
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
     build-depends:
-        base == 4.6.*,
+        base == 4.7.*,
         transformers >= 0.3,
         witness == 0.3.*,
         expression == 0.1.*,
@@ -60,7 +60,7 @@ executable argo
     hs-source-dirs: cmd
     main-is: Main.hs
     build-depends:
-        base == 4.6.*,
+        base == 4.7.*,
         transformers >= 0.3,
         argo == 0.1.0.0,
         utf8-string >= 0.3.7,
@@ -96,7 +96,7 @@ test-suite tests
         ImplicitParams
     ghc-options: -Wall
     build-depends:
-        base == 4.6.*,
+        base == 4.7.*,
         bytestring >= 0.10.0.0,
         transformers >= 0.3,
         argo == 0.1.0.0,

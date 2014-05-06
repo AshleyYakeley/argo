@@ -1,7 +1,7 @@
 module Import(module Import) where
 {
     -- base
-    import Prelude as Import (Int,Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO,Fractional(..),(^^));
+    import Prelude as Import (Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO,Fractional(..),(^^));
     import Data.Function as Import;
     import Data.Functor as Import;
     import Data.Foldable as Import;
