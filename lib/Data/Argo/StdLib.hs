@@ -1,16 +1,17 @@
 module Data.Argo.StdLib(stdLib,stdLibValue) where
 {
-    import Import;
+    import Codec.Binary.UTF8.String;
+    import System.IO hiding (hPutStr,utf8);
     import qualified Data.ByteString as B;
+
+    import Import;
     import Data.Argo.Number;
     import Data.Argo.Object;
     import Data.Argo.Value;
     import Data.Argo.Read;
     import Data.Argo.StdLib.File;
     import Data.Argo.StdLib.Process;
-    import Codec.Binary.UTF8.String;
-    import System.IO.UTF8;
-    import System.IO hiding (hPutStr,utf8);
+    import Data.Argo.TextFile;
 
     fixV :: (Value -> Value) -> Value;
     fixV f = f (fixV f);

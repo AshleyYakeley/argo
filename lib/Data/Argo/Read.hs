@@ -80,10 +80,19 @@ module Data.Argo.Read where
         return r;
     });
 
-    readText :: forall m. (Monad m,?context::String) => String -> m (ArgoExpression Value);
-    readText input = let
+    data ReadType t where
     {
-        parseResult = parse readExpressionToEnd ?context input;
+        ExpressionReadType :: ReadType (ArgoExpression Value);
+        
+    };
+
+    readText :: forall m. (Monad m,?context::String) => String -> m (ArgoExpression Value);
+    readText = readThing ExpressionReadType;
+
+    readThing :: forall t m. (Monad m,?context::String) => ReadType t -> String -> m t;
+    readThing rtype input = let
+    {
+        parseResult = parse (readToEnd (readTypeThing rtype)) ?context input;
         result = case parseResult of
         {
             Right a -> return a;
@@ -91,6 +100,9 @@ module Data.Argo.Read where
         };
     } in result where
     {
+        readTypeThing :: ReadType t -> Parser t;
+        readTypeThing ExpressionReadType = readExpression;
+
         readStringAndWS :: String -> Parser ();
         readStringAndWS s = do
         {
@@ -284,14 +296,6 @@ module Data.Argo.Read where
         recursiveBind [] = id;  -- optimisation for common case
         recursiveBind binds = combineBinds patternRecBind binds;
 
-        readBinding :: Parser (ArgoExpression a) -> Parser (ArgoExpression a);
-        readBinding readValExpr = do
-        {
-            (patExpr,bindExpr) <- readLetComma;
-            valExpr <- readValExpr;
-            return ((argoStrictBind patExpr valExpr) <*> bindExpr);
-        };
-
         readObjectInside :: Parser (ArgoExpression (Object Value));
         readObjectInside = do
         {
@@ -383,8 +387,8 @@ module Data.Argo.Read where
             return (fmap fromValue exp);
         };
 
-        readLetComma :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
-        readLetComma = do
+        readLet :: Parser (ArgoPatternExpression Value,ArgoExpression Value);
+        readLet = do
         {
             (patExpr,argExprs) <- try (do
             {
@@ -394,7 +398,6 @@ module Data.Argo.Read where
                 return (patExpr,argExprs);
             });
             bodyExpr <- readExpression;
-            readCharAndWS ',';
             return (patExpr,abstractExprs argExprs bodyExpr);
         } where
         {
@@ -424,7 +427,8 @@ module Data.Argo.Read where
             };
         } <|> do
         {
-            bind <- readLetComma;
+            bind <- readLet;
+            readCharAndWS ',';
             return [bind];
         };
 
@@ -441,8 +445,12 @@ module Data.Argo.Read where
             readCharAndWS ',';
             valExpr <- readActionRest;
             return (liftA2 (>>=) bindExpr (argoStrictBind patExpr valExpr));
-        } <|>
-        readBinding readActionRest <|> do
+        } <|> do
+        {
+            binds <- readBinderComma;
+            rest <- readActionRest;
+            return (recursiveBind binds rest);
+        } <|> do
         {
             expr <- readActionExpression;
             do
@@ -559,14 +567,14 @@ module Data.Argo.Read where
             return (recursiveBind (concat bindingss) expr);
         };
 
-        readExpressionToEnd :: Parser (ArgoExpression Value);
-        readExpressionToEnd = do
+        readToEnd :: Parser t -> Parser t;
+        readToEnd r = do
         {
             readWS;
-            exp <- readExpression;
+            t <- r;
             optional (readCharAndWS ',');
             eof;
-            return exp;
+            return t;
         };
     };
 }

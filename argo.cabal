@@ -18,6 +18,7 @@ library
         Data.Argo.Value
         Data.Argo.Object
         Data.Argo.Read
+        Data.Argo.TextFile
         Data.Argo.StdLib
     other-modules:
         Import
@@ -28,16 +29,16 @@ library
         Data.Argo.StdLib.File
         Data.Argo.StdLib.Process
     build-depends:
-        base == 4.7.*,
-        transformers >= 0.3,
-        witness == 0.3.*,
-        expression == 0.1.*,
-        bytestring >= 0.10.0.0,
-        utf8-string >= 0.3.7,
-        filepath >= 1.3,
-        directory >= 1.2,
-        unix >= 2.6.0.0,
-        parsec >= 3.1.3
+        base,
+        transformers,
+        witness,
+        expression,
+        bytestring,
+        utf8-string,
+        filepath,
+        directory,
+        unix,
+        parsec
     extensions:
         NoImplicitPrelude
         ScopedTypeVariables
@@ -60,11 +61,11 @@ executable argo
     hs-source-dirs: cmd
     main-is: Main.hs
     build-depends:
-        base == 4.7.*,
-        transformers >= 0.3,
-        argo == 0.1.0.0,
-        utf8-string >= 0.3.7,
-        unix >= 2.6.0.0
+        base,
+        transformers,
+        argo,
+        utf8-string,
+        unix
     extensions:
         ScopedTypeVariables
         FlexibleContexts
@@ -96,11 +97,11 @@ test-suite tests
         ImplicitParams
     ghc-options: -Wall
     build-depends:
-        base == 4.7.*,
-        bytestring >= 0.10.0.0,
-        transformers >= 0.3,
-        argo == 0.1.0.0,
-        test-framework == 0.8.*
+        base,
+        bytestring,
+        transformers,
+        argo,
+        test-framework
     main-is: Main.hs
     other-modules:
         TestUtil

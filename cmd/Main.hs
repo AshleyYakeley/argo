@@ -2,9 +2,9 @@ module Main where
 {
     import Prelude hiding (getContents,readFile,interact,putStr,putStrLn,getLine);
     import Data.Argo;
+    import Data.Argo.TextFile;
     import Control.Exception;
     import System.Environment;
-    import System.IO.UTF8 hiding (interact);
     import System.IO (hSetBuffering,BufferMode(..),stdout);
     import System.IO.Error;
     import System.Posix.Terminal;

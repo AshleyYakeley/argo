@@ -7,9 +7,9 @@ module Data.Argo(module Data.Argo) where
     import Data.Argo.StdLib as Data.Argo;
     
     import Import;
-    import System.IO.UTF8;
     import System.FilePath;
     import System.Directory;
+    import Data.Argo.TextFile;
 
     evaluateWithStdLib :: (Applicative m, MonadFix m,FromValue a,?context::String) => (String -> m (Maybe String)) -> String -> m a;
     evaluateWithStdLib libReader source = do

@@ -2,6 +2,7 @@ module Import(module Import) where
 {
     -- base
     import Prelude as Import (Integer,undefined,error,Integral(..),fromIntegral,Ord(..),Enum(..),Num(..),IO,Fractional(..),(^^));
+    import Data.Type.Equality as Import ((:~:)(..),TestEquality(..));
     import Data.Function as Import;
     import Data.Functor as Import;
     import Data.Foldable as Import;
@@ -11,7 +12,7 @@ module Import(module Import) where
     import Data.Maybe as Import;
     import Data.Either as Import;
     import Data.Tuple as Import;
-    import Data.List as Import ((++),null,take,drop,intercalate,filter);
+    import Data.List as Import ((++),take,drop,intercalate,filter);
     import Data.Word as Import;
     import Data.Int as Import;
     import Data.Char as Import;
@@ -31,8 +32,6 @@ module Import(module Import) where
     import Control.Monad.Trans.State as Import hiding (get);
     
     -- witness
-    import Data.Witness.EqualType as Import;
-    import Data.Witness.SimpleWitness as Import;
     import Data.Witness.List as Import;
     
     -- bytestring

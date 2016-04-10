@@ -9,7 +9,6 @@ module TestUtil
 {
     import Test.Framework;
     import Test.Framework.Providers.API;
-    import Control.Applicative;
     import Control.Exception;
     import Control.Monad.Fix;
     import Data.Typeable;

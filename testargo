@@ -1,2 +1,2 @@
 #! dist/build/argo/argo
-{_:$std "stdout" "Hello World!\n"}
+{|_:$std.stdout "Hello World!\n"|}
