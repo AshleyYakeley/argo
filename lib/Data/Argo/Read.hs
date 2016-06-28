@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# OPTIONS -Wno-redundant-constraints #-}
+#endif
 module Data.Argo.Read where
 {
     import Import hiding (many,(<|>),optional);
@@ -83,7 +87,7 @@ module Data.Argo.Read where
     data ReadType t where
     {
         ExpressionReadType :: ReadType (ArgoExpression Value);
-        
+
     };
 
     readText :: forall m. (Monad m,?context::String) => String -> m (ArgoExpression Value);
@@ -221,7 +225,7 @@ module Data.Argo.Read where
         readBracedPattern = do
         {
             readCharAndWS '{';
-            patexpr <- 
+            patexpr <-
                 fmap (subPattern fromValueMaybe) readFunctionPatternInside <|>
                 fmap (subPattern fromValueMaybe) readObjectPatternInside;
             readCharAndWS '}';

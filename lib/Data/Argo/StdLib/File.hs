@@ -4,14 +4,14 @@ module Data.Argo.StdLib.File(fileFunctions) where
     import Import;
     import System.IO(hClose);
     import System.FilePath;
-    import System.Directory hiding (getCurrentDirectory,setCurrentDirectory);
+    import System.Directory hiding (getCurrentDirectory,setCurrentDirectory,isSymbolicLink);
     import System.Posix.Files;
     import System.Posix.Temp;
     import qualified Data.ByteString as B;
     import Data.Argo.Object;
     import Data.Argo.Value;
     import Data.Argo.StdLib.Types();
-    
+
     fileType :: FileStatus -> String;
     fileType fs | isRegularFile fs = "file";
     fileType fs | isDirectory fs = "directory";
@@ -21,7 +21,7 @@ module Data.Argo.StdLib.File(fileFunctions) where
     fileType fs | isBlockDevice fs = "block";
     fileType fs | isCharacterDevice fs = "char";
     fileType _ = "unknown";
-    
+
     instance ToValue FileStatus where
     {
         toValue fs = toValue (MkObject
