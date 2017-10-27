@@ -8,9 +8,7 @@ module Data.Argo.Read where
     import qualified Control.Monad.Trans.State;
     import Text.Parsec.String;
     import Text.Parsec;
-    import Language.Expression.Expression;
-    import Language.Expression.Mono;
-    import Language.Expression.Regular;
+    import Language.Expression;
     import Data.Argo.Number;
     import Data.Argo.Object;
     import Data.Argo.Value;
